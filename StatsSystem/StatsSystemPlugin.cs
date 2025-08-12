@@ -53,7 +53,6 @@ internal class StatsSystemPlugin : Plugin<Config>
         }
         LogManager.Info("Player stats will be saved to: " + _saveFilePath);
         StatsSystem = new API.StatsSystem(_saveFilePath);
-        StatsSystem.LoadStats();
         Task.Run(StartPeriodicSaving);
     }
 
@@ -71,10 +70,9 @@ internal class StatsSystemPlugin : Plugin<Config>
     {
         while (ServerShutdown.ShutdownState == ServerShutdown.ServerShutdownState.NotInitiated)
         {
-            await Task.Delay(TimeSpan.FromMinutes(1));
-                
-            await StatsSystem.SaveStatsAsync();
             LogManager.Debug("Player stats saved automatically.");
+            await StatsSystem.SaveStatsAsync();
+            await Task.Delay(TimeSpan.FromMinutes(1));
             
         }
     }

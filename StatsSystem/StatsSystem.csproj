@@ -27,14 +27,16 @@
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="Mirror">
-          <HintPath>D:\SteamLibrary\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Mirror.dll</HintPath>
+          <HintPath>$(sl_references)\Mirror.dll</HintPath>
         </Reference>
-        <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-          <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-        </Reference>
+        <PackageReference Include="Newtonsoft.Json">
+            <Version>13.0.3</Version>
+        </PackageReference>
+        <Reference Include="mscorlib" />
         <Reference Include="System"/>
         <Reference Include="System.Core"/>
         <Reference Include="System.Data"/>
+        <Reference Include="System.Numerics" />
         <Reference Include="System.Xml"/>
         <Reference Include="Assembly-CSharp-Publicized">
             <HintPath>$(sl_references)\Assembly-CSharp-Publicized.dll</HintPath>
@@ -46,7 +48,7 @@
             <HintPath>$(sl_references)\LabApi.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.CoreModule">
-          <HintPath>D:\SteamLibrary\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+          <HintPath>$(sl_references)\UnityEngine.CoreModule.dll</HintPath>
         </Reference>
     </ItemGroup>
     <ItemGroup>
@@ -54,13 +56,11 @@
         <Compile Include="Commands\GetMyStat.cs" />
         <Compile Include="Config.cs" />
         <Compile Include="Events\EventHandler.cs" />
+        <Compile Include="Extensions\JsonExtension.cs" />
         <Compile Include="Extensions\PlayerExtension.cs" />
         <Compile Include="Managers\LogManager.cs" />
         <Compile Include="StatsSystemPlugin.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>
-    </ItemGroup>
-    <ItemGroup>
-      <None Include="packages.config" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

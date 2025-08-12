@@ -13,30 +13,19 @@ public static class PlayerExtension
     
     public static PlayerStats GetOrCreatePlayerStats(this Player player)
     {
-        if (Events.EventHandler.PlayerJoinTimes.TryGetValue(player.UserId, out var joinTime))
-        {
-            var playTime = DateTime.Now - joinTime;
-            player.UpdatePlayTime(playTime);
-            Events.EventHandler.PlayerJoinTimes[player.UserId] = DateTime.Now;
-        }
         return StatsSystemPlugin.StatsSystem.GetOrCreatePlayerStats(player);
     }
     
-    public static void UpdatePlayTime(this Player player, TimeSpan time)
+    public static void ModifyStat(this Player player, StatType type, int amount = 1)
     {
-        StatsSystemPlugin.StatsSystem.UpdatePlayTime(player, time);
+        StatsSystemPlugin.StatsSystem.ModifyPlayerStat(player, type, amount);
     }
-    
-    public static void AddKill(this Player player)
+
+    public static void ModifyPlayTime(this Player player, TimeSpan time)
     {
-        StatsSystemPlugin.StatsSystem.AddKill(player);
+        StatsSystemPlugin.StatsSystem.ModifyPlayerPlayTime(player, time);
     }
-    
-    public static void AddDeath(this Player player)
-    {
-        StatsSystemPlugin.StatsSystem.AddDeath(player);
-    }
-    
+
     public static TimeSpan GetPlayTime(this Player player)
     {
         return player.TryGetPlayerStats(out var stats) ? stats.TotalPlayTime : TimeSpan.Zero;
@@ -63,7 +52,31 @@ public static class PlayerExtension
     public static string GetFormattedPlayTime(this Player player)
     {
         var playTime = player.GetPlayTime();
-        return $"{playTime.Days}d {playTime.Hours}h {playTime.Minutes}m {playTime.Seconds}s";
+        
+        var minutes = playTime.Minutes;
+        var seconds = playTime.Seconds;
+        var hours = playTime.Hours;
+        var days = playTime.Days;
+        
+        string playTimeString;
+        if (days > 0)
+        {
+            playTimeString = $"{days} nap {hours} óra {minutes} perc {seconds} másodperc";
+        }
+        else if (hours > 0)
+        {
+            playTimeString = $"{hours} óra {minutes} perc 0 másodperc";
+        }
+        else if (minutes > 0)
+        {
+            playTimeString = $"{minutes} perc {seconds} másodperc";
+        }
+        else
+        {
+            playTimeString = $"{seconds} másodperc";
+        }
+
+        return playTimeString;
     }
     
     public static string GetFormattedKdRatio(this Player player)

@@ -6,120 +6,137 @@ using System.Linq;
 using System.Threading.Tasks;
 using LabApi.Features.Wrappers;
 using Newtonsoft.Json;
+using StatsSystem.Extensions;
 using StatsSystem.Managers;
 
 namespace StatsSystem.API;
 
-public class PlayerStats()
+public enum StatType
 {
-    public TimeSpan TotalPlayTime { get; private set; }
-    public int Kills { get; private set; }
-    public int Deaths { get; private set; }
-
-    public void AddPlayTime(TimeSpan time) => TotalPlayTime += time;
-    public void AddKill() => Kills++;
-    public void AddDeath() => Deaths++;
+    Kills,
+    Deaths
 }
 
-internal class StatsSystem
+public class PlayerStats
+{
+    public TimeSpan TotalPlayTime { get; set; }
+    public int Kills { get; set; }
+    public int Deaths { get; set; }
+
+    public void ModifyStat(StatType type, int amount)
+    {
+        switch (type)
+        {
+            case StatType.Kills:
+                Kills += amount;
+                break;
+            case StatType.Deaths:
+                Deaths += amount;
+                break;
+            
+            default:
+                throw new ArgumentException($"Unknown or unsupported stat type: {type}");
+        }
+    }
+
+    public void ModifyPlayTime(TimeSpan time)
+    {
+        TotalPlayTime += time;
+    }
+}
+
+public class StatsSystem
 {
     private readonly ConcurrentDictionary<string, PlayerStats> _playerStats;
     private readonly string _saveFilePath;
-        
-    public event Action<string, PlayerStats> OnPlayerStatsChanged;
 
-    public StatsSystem(string saveFilePath = "player_stats.json")
+    internal StatsSystem(string saveFilePath = "player_stats.json")
     {
         _playerStats = new ConcurrentDictionary<string, PlayerStats>();
         _saveFilePath = saveFilePath;
         LoadStats();
     }
 
-    public bool TryGetPlayerStats(Player player, out PlayerStats stats)
+    internal bool TryGetPlayerStats(Player player, out PlayerStats stats)
     {
         return _playerStats.TryGetValue(player.UserId, out stats);
     }
     
-    public PlayerStats GetOrCreatePlayerStats(Player player)
+    internal PlayerStats GetOrCreatePlayerStats(Player player)
     {
         return _playerStats.GetOrAdd(player.UserId, new PlayerStats());
     }
 
-    public void UpdatePlayTime(Player player, TimeSpan time)
+    internal void ModifyPlayerStat(Player player, StatType type, int amount)
     {
-        if (_playerStats.TryGetValue(player.UserId, out var stats))
-        {
-            stats.AddPlayTime(time);
-            OnPlayerStatsChanged?.Invoke(player.UserId, stats);
-        }
+        if (!_playerStats.TryGetValue(player.UserId, out var stats)) return;
+        stats.ModifyStat(type, amount);
     }
 
-    public void AddKill(Player player)
+    internal void ModifyPlayerPlayTime(Player player, TimeSpan time)
     {
-        if (_playerStats.TryGetValue(player.UserId, out var stats))
-        {
-            stats.AddKill();
-            OnPlayerStatsChanged?.Invoke(player.UserId, stats);
-        }
+        if (!_playerStats.TryGetValue(player.UserId, out var stats)) return;
+        stats.ModifyPlayTime(time);
     }
 
-    public void AddDeath(Player player)
-    {
-        if (_playerStats.TryGetValue(player.UserId, out var stats))
-        {
-            stats.AddDeath();
-            OnPlayerStatsChanged?.Invoke(player.UserId, stats);
-        }
-    }
-
-    public void SaveStats()
+    internal void SaveStats()
     {
         try
         {
-            var json = JsonConvert.SerializeObject(_playerStats, Formatting.Indented);
+            var settings = new JsonSerializerSettings
+            {
+                Converters = new List<JsonConverter> { new TimeSpanConverter() },
+                Formatting = Formatting.Indented
+            };
+            var json = JsonConvert.SerializeObject(_playerStats, settings);
             File.WriteAllText(_saveFilePath, json);
         }
         catch (Exception ex)
         {
-            LogManager.Error($"Error saving stats: {ex.Message}");
+            LogManager.Error($"Error saving stats: {ex}");
         }
     }
 
-    public async Task SaveStatsAsync()
+    internal async Task SaveStatsAsync()
     {
         try
         {
-            var json = JsonConvert.SerializeObject(_playerStats, Formatting.Indented);
+            var settings = new JsonSerializerSettings
+            {
+                Converters = new List<JsonConverter> { new TimeSpanConverter() },
+                Formatting = Formatting.Indented
+            };
+            var json = JsonConvert.SerializeObject(_playerStats, settings);
             using var writer = new StreamWriter(_saveFilePath, false);
             await writer.WriteAsync(json);
         }
         catch (Exception ex)
         {
-            LogManager.Error($"Error saving stats: {ex.Message}");
+            LogManager.Error($"Error saving stats: {ex}");
         }
     }
 
-    internal void LoadStats()
+    private void LoadStats()
     {
+        LogManager.Debug("Loading player stats...");
         try
         {
-            if (File.Exists(_saveFilePath))
+            if (!File.Exists(_saveFilePath)) return;
+            var json = File.ReadAllText(_saveFilePath);
+            var settings = new JsonSerializerSettings
             {
-                var json = File.ReadAllText(_saveFilePath);
-                var loadedStats = JsonConvert.DeserializeObject<ConcurrentDictionary<string, PlayerStats>>(json);
-                    
-                if (loadedStats != null)
-                {
-                    foreach (var pair in loadedStats)
-                    {
-                        _playerStats[pair.Key] = pair.Value;
-                    }
-                }
+                Converters = new List<JsonConverter> { new TimeSpanConverter() }
+            };
+            var loadedStats = JsonConvert.DeserializeObject<ConcurrentDictionary<string, PlayerStats>>(json, settings);
+            if (loadedStats == null) return;
+            foreach (var pair in loadedStats)
+            {
+                _playerStats[pair.Key] = pair.Value;
             }
         }
         catch (Exception ex)
         {
-            LogManager.Error($"Error loading stats: {ex.Message}");
+            LogManager.Error($"Error loading stats: {ex}");
         }
     }
 

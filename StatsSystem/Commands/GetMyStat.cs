@@ -36,34 +36,25 @@ public class ScpLeave : ICommand
             response = "Nincsenek statisztikáid!";
             return false;
         }
+
+        if (!Events.EventHandler.PlayerJoinTimes.TryGetValue(player.UserId, out var joinTime))
+        {
+            response = "Nem található a belépési időd!";
+            return false;
+        }
+
+        var playTimeSpan = DateTime.Now - joinTime;
+        player.ModifyPlayTime(playTimeSpan);
+        Events.EventHandler.PlayerJoinTimes[player.UserId] = DateTime.Now;
         
-        var minutes = stats.TotalPlayTime.Minutes;
-        var seconds = stats.TotalPlayTime.Seconds;
-        var hours = stats.TotalPlayTime.Hours;
-        var days = stats.TotalPlayTime.Days;
-
-        string playTime;
-        if (days > 0)
-        {
-            playTime = $"{days} nap ({hours} óra)";
-        }
-        else if (hours > 0)
-        {
-            playTime = $"{hours} óra {minutes} perc " + (seconds > 0 ? $"{seconds} másodperc" : "");
-        }
-        else if (minutes > 0)
-        {
-            playTime = $"{minutes} perc" + (seconds > 0 ? $" {seconds} másodperc" : "");
-        }
-        else
-        {
-            playTime = $"{seconds} másodperc";
-        }
-
+        var deaths = player.GetDeaths();
+        var kills = player.GetKills();
+        
         response = $"Statisztikáid:\n" +
-                   $"- Játékidő: {playTime}\n" +
-                   $"- Ölések: {stats.Kills}\n" +
-                   $"- Halálok: {stats.Deaths}";
+                   $"- Játékidő: {player.GetFormattedPlayTime()}\n" +
+                   $"- Ölések: {kills}\n" +
+                   $"- Halálok: {deaths}"
+                   + (deaths > 0 ? $"\n- K/D arány: {player.GetFormattedKdRatio()}" : "");
         return true;
     }
 }
