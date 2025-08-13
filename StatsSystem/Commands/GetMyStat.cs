@@ -70,11 +70,21 @@ public class ScpLeave : ICommand
         var kd = deaths == 0 ? kills : (float)kills / deaths;
         var kdFormatted = kd.ToString("F2");
         
+        var classDKills = (int)player.GetCounter("ClassDKills");
+        var killsAsClassD = (int)player.GetCounter("ClassDKills");
+        var scpKills = (int)player.GetCounter("ScpKills");
+        var microHidKills = (int)player.GetCounter("MicroHidKills");
+
+
         response = $"Statisztikáid:\n" +
                    $"- Játékidő: {FormatPlayTime(totalPlayTime)}\n" +
                    $"- Ölések: {kills}\n" +
                    $"- Halálok: {deaths}" +
-                   (deaths > 0 ? $"\n- K/D arány: {kdFormatted}" : "");
+                   (deaths > 0 ? $"\n- K/D arány: {kdFormatted}" : "") +
+                   $"- Megölt D-Osztályúak: {classDKills}\n" +
+                   $"- Ölések D-Osztályúként: {killsAsClassD}\n" +
+                   $"- Megölt SCP-k: {scpKills}\n" +
+                   $"- Micro HID ölések: {microHidKills}\n";
         return true;
     }
 }
