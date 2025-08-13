@@ -74,6 +74,7 @@ public class ScpLeave : ICommand
         var killsAsClassD = (int)player.GetCounter("ClassDKills");
         var scpKills = (int)player.GetCounter("ScpKills");
         var microHidKills = (int)player.GetCounter("MicroHidKills");
+        var mvps = (int)player.GetCounter("MVPs");
 
 
         response = $"Statisztikáid:\n" +
@@ -84,7 +85,8 @@ public class ScpLeave : ICommand
                    $"- Megölt D-Osztályúak: {classDKills}\n" +
                    $"- Ölések D-Osztályúként: {killsAsClassD}\n" +
                    $"- Megölt SCP-k: {scpKills}\n" +
-                   $"- Micro HID ölések: {microHidKills}\n";
+                   $"- Micro HID ölések: {microHidKills}\n" +
+                   $"- MVP-k: {mvps}\n";
         return true;
     }
 }
