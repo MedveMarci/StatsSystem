@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace StatsSystem.Extensions;
 
-public class TimeSpanConverter : JsonConverter
+internal sealed class TimeSpanConverter : JsonConverter
 {
     public override bool CanConvert(Type objectType) =>
         objectType == typeof(TimeSpan) || objectType == typeof(TimeSpan?);

@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.CustomHandlers;
 using LabApi.Features.Wrappers;
-using StatsSystem.API;
 using StatsSystem.Extensions;
 using StatsSystem.Managers;
 
@@ -24,7 +23,7 @@ internal class EventHandler : CustomEventsHandler
     {
         if (!PlayerJoinTimes.TryRemove(ev.Player.UserId, out var joinTime)) return;
         var playTime = DateTime.Now - joinTime;
-        ev.Player.ModifyPlayTime(playTime);
+        ev.Player.AddDuration("TotalPlayTime", playTime);
         LogManager.Debug($"Player {ev.Player.UserId} left after {playTime.TotalSeconds} seconds.");
         base.OnPlayerLeft(ev);
     }
@@ -32,19 +31,19 @@ internal class EventHandler : CustomEventsHandler
     public override void OnPlayerDeath(PlayerDeathEventArgs ev)
     {
         LogManager.Debug($"Player {ev.Player.UserId} died. Attacker: {ev.Attacker?.UserId ?? "None"}");
-        ev.Attacker?.ModifyStat(StatType.Kills);
-        ev.Player.ModifyStat(StatType.Deaths);
+        ev.Attacker?.IncrementStat("Kills");
+        ev.Player.IncrementStat("Deaths");
         base.OnPlayerDeath(ev);
     }
     
-    public static void OnQuit()
+    internal static void OnQuit()
     {
         foreach (var kvp in PlayerJoinTimes)
         {
             var player = Player.Get(kvp.Key);
             if (player == null) continue;
             var playTime = DateTime.Now - kvp.Value;
-            player.ModifyPlayTime(playTime);
+            player.AddDuration("TotalPlayTime", playTime);
         }
         
         PlayerJoinTimes.Clear();

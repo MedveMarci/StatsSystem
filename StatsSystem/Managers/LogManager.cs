@@ -3,7 +3,7 @@ using Logger = LabApi.Features.Console.Logger;
 
 namespace StatsSystem.Managers;
 
-internal class LogManager
+internal static class LogManager
 {
     private static bool DebugEnabled => StatsSystemPlugin.Instance.Config.Debug;
 
@@ -13,8 +13,9 @@ internal class LogManager
             return;
 
         Logger.Raw($"[DEBUG] [{StatsSystemPlugin.Instance.Name}] {message}", ConsoleColor.Cyan);
+        
     }
-
+    
     public static void Info(string message, ConsoleColor color = ConsoleColor.Cyan)
     {
         Logger.Raw($"[INFO] [{StatsSystemPlugin.Instance.Name}] {message}", color);

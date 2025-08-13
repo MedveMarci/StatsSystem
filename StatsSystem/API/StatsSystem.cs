@@ -6,46 +6,27 @@ using System.Linq;
 using System.Threading.Tasks;
 using LabApi.Features.Wrappers;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using StatsSystem.Extensions;
 using StatsSystem.Managers;
 
 namespace StatsSystem.API;
 
-public enum StatType
-{
-    Kills,
-    Deaths
-}
-
 public class PlayerStats
 {
-    public TimeSpan TotalPlayTime { get; set; }
-    public int Kills { get; set; }
-    public int Deaths { get; set; }
+    public ConcurrentDictionary<string, long> Counters { get; set; } = new();
+    public ConcurrentDictionary<string, TimeSpan> Durations { get; set; } = new();
 
-    public void ModifyStat(StatType type, int amount)
-    {
-        switch (type)
-        {
-            case StatType.Kills:
-                Kills += amount;
-                break;
-            case StatType.Deaths:
-                Deaths += amount;
-                break;
-            
-            default:
-                throw new ArgumentException($"Unknown or unsupported stat type: {type}");
-        }
-    }
+    public long GetCounter(string key) => Counters.TryGetValue(key, out var v) ? v : 0L;
+    public void SetCounter(string key, long value) => Counters[key] = value;
+    public void IncrementCounter(string key, long amount = 1) => Counters.AddOrUpdate(key, amount, (_, old) => old + amount);
 
-    public void ModifyPlayTime(TimeSpan time)
-    {
-        TotalPlayTime += time;
-    }
+    public TimeSpan GetDuration(string key) => Durations.TryGetValue(key, out var v) ? v : TimeSpan.Zero;
+    public void SetDuration(string key, TimeSpan value) => Durations[key] = value;
+    public void AddDuration(string key, TimeSpan delta) => Durations.AddOrUpdate(key, delta, (_, old) => old + delta);
 }
 
-public class StatsSystem
+internal class StatsSystem
 {
     private readonly ConcurrentDictionary<string, PlayerStats> _playerStats;
     private readonly string _saveFilePath;
@@ -67,17 +48,40 @@ public class StatsSystem
         return _playerStats.GetOrAdd(player.UserId, new PlayerStats());
     }
 
-    internal void ModifyPlayerStat(Player player, StatType type, int amount)
+    internal void ModifyPlayerCounter(Player player, string key, long amount)
     {
         if (!_playerStats.TryGetValue(player.UserId, out var stats)) return;
-        stats.ModifyStat(type, amount);
+        stats.IncrementCounter(key, amount);
     }
 
-    internal void ModifyPlayerPlayTime(Player player, TimeSpan time)
+    internal void SetPlayerCounter(Player player, string key, long value)
     {
         if (!_playerStats.TryGetValue(player.UserId, out var stats)) return;
-        stats.ModifyPlayTime(time);
+        stats.SetCounter(key, value);
     }
+
+    internal long GetPlayerCounter(Player player, string key)
+    {
+        return _playerStats.TryGetValue(player.UserId, out var stats) ? stats.GetCounter(key) : 0L;
+    }
+
+    internal void AddPlayerDuration(Player player, string key, TimeSpan delta)
+    {
+        if (!_playerStats.TryGetValue(player.UserId, out var stats)) return;
+        stats.AddDuration(key, delta);
+    }
+
+    internal void SetPlayerDuration(Player player, string key, TimeSpan value)
+    {
+        if (!_playerStats.TryGetValue(player.UserId, out var stats)) return;
+        stats.SetDuration(key, value);
+    }
+
+    internal TimeSpan GetPlayerDuration(Player player, string key)
+    {
+        return _playerStats.TryGetValue(player.UserId, out var stats) ? stats.GetDuration(key) : TimeSpan.Zero;
+    }
+
 
     internal void SaveStats()
     {
@@ -123,15 +127,42 @@ public class StatsSystem
         {
             if (!File.Exists(_saveFilePath)) return;
             var json = File.ReadAllText(_saveFilePath);
+            if (string.IsNullOrWhiteSpace(json)) return;
+
             var settings = new JsonSerializerSettings
             {
                 Converters = new List<JsonConverter> { new TimeSpanConverter() }
             };
-            var loadedStats = JsonConvert.DeserializeObject<ConcurrentDictionary<string, PlayerStats>>(json, settings);
-            if (loadedStats == null) return;
-            foreach (var pair in loadedStats)
+
+            var root = JObject.Parse(json);
+            foreach (var prop in root.Properties())
             {
-                _playerStats[pair.Key] = pair.Value;
+                var userId = prop.Name;
+                if (prop.Value is not JObject obj)
+                    continue;
+
+                PlayerStats stats;
+                if (obj.ContainsKey("Counters") || obj.ContainsKey("Durations"))
+                {
+                    stats = obj.ToObject<PlayerStats>(JsonSerializer.Create(settings)) ?? new PlayerStats();
+                }
+                else
+                {
+                    // Legacy migration
+                    stats = new PlayerStats();
+                    var kills = (int?)obj["Kills"] ?? 0;
+                    var deaths = (int?)obj["Deaths"] ?? 0;
+                    var totalStr = (string)obj["TotalPlayTime"];
+                    TimeSpan total = TimeSpan.Zero;
+                    if (!string.IsNullOrEmpty(totalStr))
+                        TimeSpan.TryParse(totalStr, out total);
+
+                    if (kills != 0) stats.SetCounter("Kills", kills);
+                    if (deaths != 0) stats.SetCounter("Deaths", deaths);
+                    if (total != TimeSpan.Zero) stats.SetDuration("TotalPlayTime", total);
+                }
+
+                _playerStats[userId] = stats;
             }
         }
         catch (Exception ex)
@@ -140,7 +171,7 @@ public class StatsSystem
         }
     }
 
-    public IEnumerable<PlayerStats> GetTopPlayers(int count, Func<PlayerStats, IComparable> selector)
+    internal IEnumerable<PlayerStats> GetTopPlayers(int count, Func<PlayerStats, IComparable> selector)
     {
         return _playerStats.Values
             .OrderByDescending(selector)

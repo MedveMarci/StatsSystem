@@ -44,17 +44,37 @@ public class ScpLeave : ICommand
         }
 
         var playTimeSpan = DateTime.Now - joinTime;
-        player.ModifyPlayTime(playTimeSpan);
+        player.AddDuration("TotalPlayTime", playTimeSpan);
         Events.EventHandler.PlayerJoinTimes[player.UserId] = DateTime.Now;
         
-        var deaths = player.GetDeaths();
-        var kills = player.GetKills();
+        var deaths = (int)player.GetCounter("Deaths");
+        var kills = (int)player.GetCounter("Kills");
+
+        string FormatPlayTime(TimeSpan playTime)
+        {
+            var minutes = playTime.Minutes;
+            var seconds = playTime.Seconds;
+            var hours = playTime.Hours;
+            var days = playTime.Days;
+
+            if (days > 0)
+                return $"{days} nap {hours} óra {minutes} perc {seconds} másodperc";
+            if (hours > 0)
+                return $"{hours} óra {minutes} perc {seconds} másodperc";
+            if (minutes > 0)
+                return $"{minutes} perc {seconds} másodperc";
+            return $"{seconds} másodperc";
+        }
+
+        var totalPlayTime = player.GetDuration("TotalPlayTime");
+        var kd = deaths == 0 ? kills : (float)kills / deaths;
+        var kdFormatted = kd.ToString("F2");
         
         response = $"Statisztikáid:\n" +
-                   $"- Játékidő: {player.GetFormattedPlayTime()}\n" +
+                   $"- Játékidő: {FormatPlayTime(totalPlayTime)}\n" +
                    $"- Ölések: {kills}\n" +
-                   $"- Halálok: {deaths}"
-                   + (deaths > 0 ? $"\n- K/D arány: {player.GetFormattedKdRatio()}" : "");
+                   $"- Halálok: {deaths}" +
+                   (deaths > 0 ? $"\n- K/D arány: {kdFormatted}" : "");
         return true;
     }
 }

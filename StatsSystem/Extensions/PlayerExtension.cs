@@ -16,71 +16,88 @@ public static class PlayerExtension
         return StatsSystemPlugin.StatsSystem.GetOrCreatePlayerStats(player);
     }
     
-    public static void ModifyStat(this Player player, StatType type, int amount = 1)
+    public static void SetStat<T>(this Player player, string key, T value)
     {
-        StatsSystemPlugin.StatsSystem.ModifyPlayerStat(player, type, amount);
+        switch (value)
+        {
+            case TimeSpan ts:
+                StatsSystemPlugin.StatsSystem.SetPlayerDuration(player, key, ts);
+                break;
+            case byte b:
+                StatsSystemPlugin.StatsSystem.SetPlayerCounter(player, key, b);
+                break;
+            case short s:
+                StatsSystemPlugin.StatsSystem.SetPlayerCounter(player, key, s);
+                break;
+            case int i:
+                StatsSystemPlugin.StatsSystem.SetPlayerCounter(player, key, i);
+                break;
+            case long l:
+                StatsSystemPlugin.StatsSystem.SetPlayerCounter(player, key, l);
+                break;
+            default:
+                throw new ArgumentException($"Unsupported stat type {typeof(T).Name} for key '{key}'. Use numeric types or TimeSpan.");
+        }
     }
 
-    public static void ModifyPlayTime(this Player player, TimeSpan time)
+    public static T GetStat<T>(this Player player, string key)
     {
-        StatsSystemPlugin.StatsSystem.ModifyPlayerPlayTime(player, time);
-    }
-
-    public static TimeSpan GetPlayTime(this Player player)
-    {
-        return player.TryGetPlayerStats(out var stats) ? stats.TotalPlayTime : TimeSpan.Zero;
-    }
-    
-    public static int GetKills(this Player player)
-    {
-        return player.TryGetPlayerStats(out var stats) ? stats.Kills : 0;
-    }
-    
-    public static int GetDeaths(this Player player)
-    {
-        return player.TryGetPlayerStats(out var stats) ? stats.Deaths : 0;
-    }
-    
-    public static float GetKdRatio(this Player player)
-    {
-        if (!player.TryGetPlayerStats(out var stats))
-            return 0;
-            
-        return stats.Deaths == 0 ? stats.Kills : (float)stats.Kills / stats.Deaths;
-    }
-    
-    public static string GetFormattedPlayTime(this Player player)
-    {
-        var playTime = player.GetPlayTime();
-        
-        var minutes = playTime.Minutes;
-        var seconds = playTime.Seconds;
-        var hours = playTime.Hours;
-        var days = playTime.Days;
-        
-        string playTimeString;
-        if (days > 0)
+        if (typeof(T) == typeof(TimeSpan))
         {
-            playTimeString = $"{days} nap {hours} óra {minutes} perc {seconds} másodperc";
-        }
-        else if (hours > 0)
-        {
-            playTimeString = $"{hours} óra {minutes} perc 0 másodperc";
-        }
-        else if (minutes > 0)
-        {
-            playTimeString = $"{minutes} perc {seconds} másodperc";
-        }
-        else
-        {
-            playTimeString = $"{seconds} másodperc";
+            var v = StatsSystemPlugin.StatsSystem.GetPlayerDuration(player, key);
+            return (T)(object)v;
         }
 
-        return playTimeString;
+        var counter = StatsSystemPlugin.StatsSystem.GetPlayerCounter(player, key);
+        if (typeof(T) == typeof(long)) return (T)(object)counter;
+        if (typeof(T) == typeof(int)) return (T)(object)(int)counter;
+        if (typeof(T) == typeof(short)) return (T)(object)(short)counter;
+        if (typeof(T) == typeof(byte)) return (T)(object)(byte)counter;
+
+        throw new ArgumentException($"Unsupported stat type {typeof(T).Name} for key '{key}'. Use numeric types or TimeSpan.");
     }
-    
-    public static string GetFormattedKdRatio(this Player player)
+
+    public static void AddStat<T>(this Player player, string key, T delta)
     {
-        return player.GetKdRatio().ToString("F2");
+        switch (delta)
+        {
+            case TimeSpan ts:
+                StatsSystemPlugin.StatsSystem.AddPlayerDuration(player, key, ts);
+                break;
+            case byte b:
+                StatsSystemPlugin.StatsSystem.ModifyPlayerCounter(player, key, b);
+                break;
+            case short s:
+                StatsSystemPlugin.StatsSystem.ModifyPlayerCounter(player, key, s);
+                break;
+            case int i:
+                StatsSystemPlugin.StatsSystem.ModifyPlayerCounter(player, key, i);
+                break;
+            case long l:
+                StatsSystemPlugin.StatsSystem.ModifyPlayerCounter(player, key, l);
+                break;
+            default:
+                throw new ArgumentException($"Unsupported stat type {typeof(T).Name} for key '{key}'. Use numeric types or TimeSpan.");
+        }
+    }
+
+    public static void IncrementStat(this Player player, string key, long amount = 1)
+    {
+        StatsSystemPlugin.StatsSystem.ModifyPlayerCounter(player, key, amount);
+    }
+
+    public static void AddDuration(this Player player, string key, TimeSpan time)
+    {
+        StatsSystemPlugin.StatsSystem.AddPlayerDuration(player, key, time);
+    }
+
+    public static TimeSpan GetDuration(this Player player, string key)
+    {
+        return StatsSystemPlugin.StatsSystem.GetPlayerDuration(player, key);
+    }
+
+    public static long GetCounter(this Player player, string key)
+    {
+        return StatsSystemPlugin.StatsSystem.GetPlayerCounter(player, key);
     }
 }
