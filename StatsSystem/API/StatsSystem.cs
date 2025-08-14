@@ -50,36 +50,32 @@ internal class StatsSystem
 
     internal void ModifyPlayerCounter(Player player, string key, long amount)
     {
-        if (!_playerStats.TryGetValue(player.UserId, out var stats)) return;
-        stats.IncrementCounter(key, amount);
+        GetOrCreatePlayerStats(player).IncrementCounter(key, amount);
     }
 
     internal void SetPlayerCounter(Player player, string key, long value)
     {
-        if (!_playerStats.TryGetValue(player.UserId, out var stats)) return;
-        stats.SetCounter(key, value);
+        GetOrCreatePlayerStats(player).SetCounter(key, value);
     }
 
     internal long GetPlayerCounter(Player player, string key)
     {
-        return _playerStats.TryGetValue(player.UserId, out var stats) ? stats.GetCounter(key) : 0L;
+        return GetOrCreatePlayerStats(player).GetCounter(key);
     }
 
     internal void AddPlayerDuration(Player player, string key, TimeSpan delta)
     {
-        if (!_playerStats.TryGetValue(player.UserId, out var stats)) return;
-        stats.AddDuration(key, delta);
+        GetOrCreatePlayerStats(player).AddDuration(key, delta);
     }
 
     internal void SetPlayerDuration(Player player, string key, TimeSpan value)
     {
-        if (!_playerStats.TryGetValue(player.UserId, out var stats)) return;
-        stats.SetDuration(key, value);
+        GetOrCreatePlayerStats(player).SetDuration(key, value);
     }
 
     internal TimeSpan GetPlayerDuration(Player player, string key)
     {
-        return _playerStats.TryGetValue(player.UserId, out var stats) ? stats.GetDuration(key) : TimeSpan.Zero;
+        return GetOrCreatePlayerStats(player).GetDuration(key);
     }
 
 
