@@ -81,7 +81,7 @@ public class ScpLeave : ICommand
                    $"- Játékidő: {FormatPlayTime(totalPlayTime)}\n" +
                    $"- Ölések: {kills}\n" +
                    $"- Halálok: {deaths}" +
-                   (deaths > 0 ? $"\n- K/D arány: {kdFormatted}" : "") +
+                   (deaths > 0 ? $"\n- K/D arány: {kdFormatted}\n" : "\n") +
                    $"- Megölt D-Osztályúak: {classDKills}\n" +
                    $"- Ölések D-Osztályúként: {killsAsClassD}\n" +
                    $"- Megölt SCP-k: {scpKills}\n" +
