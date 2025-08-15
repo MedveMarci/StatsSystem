@@ -43,9 +43,21 @@ internal class StatsSystem
         return _playerStats.TryGetValue(player.UserId, out stats);
     }
     
+    internal bool TryGetPlayerStats(string userId, out PlayerStats stats)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentNullException(nameof(userId));
+        return _playerStats.TryGetValue(userId, out stats);
+    }
+    
     internal PlayerStats GetOrCreatePlayerStats(Player player)
     {
         return _playerStats.GetOrAdd(player.UserId, new PlayerStats());
+    }
+
+    internal PlayerStats GetOrCreatePlayerStats(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentNullException(nameof(userId));
+        return _playerStats.GetOrAdd(userId, new PlayerStats());
     }
 
     internal void ModifyPlayerCounter(Player player, string key, long amount)
@@ -53,9 +65,19 @@ internal class StatsSystem
         GetOrCreatePlayerStats(player).IncrementCounter(key, amount);
     }
 
+    internal void ModifyPlayerCounter(string userId, string key, long amount)
+    {
+        GetOrCreatePlayerStats(userId).IncrementCounter(key, amount);
+    }
+
     internal void SetPlayerCounter(Player player, string key, long value)
     {
         GetOrCreatePlayerStats(player).SetCounter(key, value);
+    }
+
+    internal void SetPlayerCounter(string userId, string key, long value)
+    {
+        GetOrCreatePlayerStats(userId).SetCounter(key, value);
     }
 
     internal long GetPlayerCounter(Player player, string key)
@@ -63,9 +85,19 @@ internal class StatsSystem
         return GetOrCreatePlayerStats(player).GetCounter(key);
     }
 
+    internal long GetPlayerCounter(string userId, string key)
+    {
+        return GetOrCreatePlayerStats(userId).GetCounter(key);
+    }
+
     internal void AddPlayerDuration(Player player, string key, TimeSpan delta)
     {
         GetOrCreatePlayerStats(player).AddDuration(key, delta);
+    }
+
+    internal void AddPlayerDuration(string userId, string key, TimeSpan delta)
+    {
+        GetOrCreatePlayerStats(userId).AddDuration(key, delta);
     }
 
     internal void SetPlayerDuration(Player player, string key, TimeSpan value)
@@ -73,9 +105,19 @@ internal class StatsSystem
         GetOrCreatePlayerStats(player).SetDuration(key, value);
     }
 
+    internal void SetPlayerDuration(string userId, string key, TimeSpan value)
+    {
+        GetOrCreatePlayerStats(userId).SetDuration(key, value);
+    }
+
     internal TimeSpan GetPlayerDuration(Player player, string key)
     {
         return GetOrCreatePlayerStats(player).GetDuration(key);
+    }
+
+    internal TimeSpan GetPlayerDuration(string userId, string key)
+    {
+        return GetOrCreatePlayerStats(userId).GetDuration(key);
     }
 
 
@@ -172,5 +214,10 @@ internal class StatsSystem
         return _playerStats.Values
             .OrderByDescending(selector)
             .Take(count);
+    }
+
+    internal IReadOnlyDictionary<string, PlayerStats> GetAllPlayerStatsSnapshot()
+    {
+        return _playerStats.ToDictionary(kv => kv.Key, kv => kv.Value);
     }
 }
