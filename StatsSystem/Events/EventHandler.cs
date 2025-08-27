@@ -26,6 +26,7 @@ internal class EventHandler : CustomEventsHandler
     public override void OnPlayerLeft(PlayerLeftEventArgs ev)
     {
         if (!StatsSystemPlugin.Instance.Config.PlaytimeTracking) return;
+        if (ev.Player == null || string.IsNullOrEmpty(ev.Player.UserId)) return;
         if (!PlayerJoinTimes.TryRemove(ev.Player.UserId, out var joinTime)) return;
         var playTime = DateTime.Now - joinTime;
         ev.Player.AddDuration("TotalPlayTime", playTime);

@@ -17,7 +17,7 @@ internal class StatsSystemPlugin : Plugin<Config>
 
     public override string Author => "MedveMarci";
 
-    public override Version Version { get; } = new(2025, 8, 15, 3);
+    public override Version Version { get; } = new(1, 0, 0, 0);
 
     public override Version RequiredApiVersion => new(1, 1, 1);
 
