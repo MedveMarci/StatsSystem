@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using CommandSystem;
 using LabApi.Features.Wrappers;
 using StatsSystem.Extensions;
@@ -18,7 +20,7 @@ public class ScpLeave : ICommand
     {
         if (sender == null)
         {
-            response = "Konzolból nem használhatod a parancsot!";
+            response = "You must be a player to use this command.";
             return false;
         }
 
@@ -26,31 +28,33 @@ public class ScpLeave : ICommand
 
         if (player == null)
         {
-            response = "Nem vagy játékos!";
+            response = "Player not found.";
             return false;
         }
 
         var stats = player.GetOrCreatePlayerStats();
         if (stats == null)
         {
-            response = "Nincsenek statisztikáid!";
+            response = "Your stats could not be found or created.";
             return false;
         }
 
-        if (!Events.EventHandler.PlayerJoinTimes.TryGetValue(player.UserId, out var joinTime))
+        if (Events.EventHandler.PlayerJoinTimes.TryGetValue(player.UserId, out var joinTime))
         {
-            response = "Nem található a belépési időd!";
-            return false;
+            var playTimeSpan = DateTime.Now - joinTime;
+            player.AddDuration("TotalPlayTime", playTimeSpan);
+            Events.EventHandler.PlayerJoinTimes[player.UserId] = DateTime.Now;
         }
 
-        var playTimeSpan = DateTime.Now - joinTime;
-        player.AddDuration("TotalPlayTime", playTimeSpan);
-        Events.EventHandler.PlayerJoinTimes[player.UserId] = DateTime.Now;
-        
-        var deaths = (int)player.GetCounter("Deaths");
-        var kills = (int)player.GetCounter("Kills");
+        var statLines = new List<string> { "Statistics:" };
+        statLines.AddRange(stats.Counters.Select(kvp => $"- {kvp.Key}: {kvp.Value}"));
 
-        string FormatPlayTime(TimeSpan playTime)
+        statLines.AddRange(stats.Durations.Select(kvp => $"- {kvp.Key}: {FormatTime(kvp.Value)}"));
+
+        response = string.Join("\n", statLines);
+        return true;
+
+        string FormatTime(TimeSpan playTime)
         {
             var minutes = playTime.Minutes;
             var seconds = playTime.Seconds;
@@ -58,35 +62,12 @@ public class ScpLeave : ICommand
             var days = playTime.Days;
 
             if (days > 0)
-                return $"{days} nap {hours} óra {minutes} perc {seconds} másodperc";
+                return $"{days} days {hours} hours {minutes} minutes {seconds} seconds";
             if (hours > 0)
-                return $"{hours} óra {minutes} perc {seconds} másodperc";
+                return $"{hours} hours {minutes} minutes {seconds} seconds";
             if (minutes > 0)
-                return $"{minutes} perc {seconds} másodperc";
-            return $"{seconds} másodperc";
+                return $"{minutes} minutes {seconds} seconds";
+            return $"{seconds} seconds";
         }
-
-        var totalPlayTime = player.GetDuration("TotalPlayTime");
-        var kd = deaths == 0 ? kills : (float)kills / deaths;
-        var kdFormatted = kd.ToString("F2");
-        
-        var classDKills = (int)player.GetCounter("ClassDKills");
-        var killsAsClassD = (int)player.GetCounter("ClassDKills");
-        var scpKills = (int)player.GetCounter("ScpKills");
-        var microHidKills = (int)player.GetCounter("MicroHidKills");
-        var mvps = (int)player.GetCounter("MVPs");
-
-
-        response = $"Statisztikáid:\n" +
-                   $"- Játékidő: {FormatPlayTime(totalPlayTime)}\n" +
-                   $"- Ölések: {kills}\n" +
-                   $"- Halálok: {deaths}" +
-                   (deaths > 0 ? $"\n- K/D arány: {kdFormatted}\n" : "\n") +
-                   $"- Megölt D-Osztályúak: {classDKills}\n" +
-                   $"- Ölések D-Osztályúként: {killsAsClassD}\n" +
-                   $"- Megölt SCP-k: {scpKills}\n" +
-                   $"- Micro HID ölések: {microHidKills}\n" +
-                   $"- MVP-k: {mvps}\n";
-        return true;
     }
 }
