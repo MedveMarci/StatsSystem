@@ -51,13 +51,15 @@ internal class StatsSystem
     
     internal PlayerStats GetOrCreatePlayerStats(Player player)
     {
+        if (player.DoNotTrack) throw new InvalidOperationException("Cannot get stats for a player marked as DoNotTrack.");
         return _playerStats.GetOrAdd(player.UserId, new PlayerStats());
     }
 
     internal PlayerStats GetOrCreatePlayerStats(string userId)
     {
         if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentNullException(nameof(userId));
-        return _playerStats.GetOrAdd(userId, new PlayerStats());
+        var player = Player.Get(userId);
+        return GetOrCreatePlayerStats(player);
     }
 
     internal void ModifyPlayerCounter(Player player, string key, long amount)

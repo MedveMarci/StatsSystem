@@ -18,6 +18,7 @@ internal class EventHandler : CustomEventsHandler
     
     public override void OnPlayerJoined(PlayerJoinedEventArgs ev)
     {
+        if (ev.Player.DoNotTrack) return;
         if (!StatsSystemPlugin.Singleton.Config.PlaytimeTracking) return;
         PlayerJoinTimes[ev.Player.UserId] = DateTime.Now;
         LogManager.Debug($"Player {ev.Player.UserId} joined at {PlayerJoinTimes[ev.Player.UserId]}");
@@ -26,6 +27,7 @@ internal class EventHandler : CustomEventsHandler
 
     public override void OnPlayerLeft(PlayerLeftEventArgs ev)
     {
+        if (ev.Player.DoNotTrack) return;
         if (!StatsSystemPlugin.Singleton.Config.PlaytimeTracking) return;
         if (ev.Player == null || string.IsNullOrEmpty(ev.Player.UserId)) return;
         if (!PlayerJoinTimes.TryRemove(ev.Player.UserId, out var joinTime)) return;
@@ -37,6 +39,7 @@ internal class EventHandler : CustomEventsHandler
 
     public override void OnPlayerDeath(PlayerDeathEventArgs ev)
     {
+        if (ev.Player.DoNotTrack) return;
         LogManager.Debug($"Player {ev.Player.UserId} died. Attacker: {ev.Attacker?.UserId ?? "None"}");
         if (StatsSystemPlugin.Singleton.Config.KillsTracking)
             ev.Attacker?.IncrementStat("Kills");
@@ -75,6 +78,7 @@ internal class EventHandler : CustomEventsHandler
             {
                 var player = Player.Get(kvp.Key);
                 if (player == null) continue;
+                if (player.DoNotTrack) continue;
                 var playTime = DateTime.Now - kvp.Value;
                 player.AddDuration("TotalPlayTime", playTime);
             }
