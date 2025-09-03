@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Threading.Tasks;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.CustomHandlers;
 using LabApi.Features.Extensions;
@@ -17,7 +18,7 @@ internal class EventHandler : CustomEventsHandler
     
     public override void OnPlayerJoined(PlayerJoinedEventArgs ev)
     {
-        if (!StatsSystemPlugin.Instance.Config.PlaytimeTracking) return;
+        if (!StatsSystemPlugin.Singleton.Config.PlaytimeTracking) return;
         PlayerJoinTimes[ev.Player.UserId] = DateTime.Now;
         LogManager.Debug($"Player {ev.Player.UserId} joined at {PlayerJoinTimes[ev.Player.UserId]}");
         base.OnPlayerJoined(ev);
@@ -25,7 +26,7 @@ internal class EventHandler : CustomEventsHandler
 
     public override void OnPlayerLeft(PlayerLeftEventArgs ev)
     {
-        if (!StatsSystemPlugin.Instance.Config.PlaytimeTracking) return;
+        if (!StatsSystemPlugin.Singleton.Config.PlaytimeTracking) return;
         if (ev.Player == null || string.IsNullOrEmpty(ev.Player.UserId)) return;
         if (!PlayerJoinTimes.TryRemove(ev.Player.UserId, out var joinTime)) return;
         var playTime = DateTime.Now - joinTime;
@@ -37,24 +38,38 @@ internal class EventHandler : CustomEventsHandler
     public override void OnPlayerDeath(PlayerDeathEventArgs ev)
     {
         LogManager.Debug($"Player {ev.Player.UserId} died. Attacker: {ev.Attacker?.UserId ?? "None"}");
-        if (StatsSystemPlugin.Instance.Config.KillsTracking)
+        if (StatsSystemPlugin.Singleton.Config.KillsTracking)
             ev.Attacker?.IncrementStat("Kills");
-        if (StatsSystemPlugin.Instance.Config.DeathsTracking)
+        if (StatsSystemPlugin.Singleton.Config.DeathsTracking)
             ev.Player.IncrementStat("Deaths");
-        if (ev.OldRole is RoleTypeId.ClassD && StatsSystemPlugin.Instance.Config.ClassDKillsTracking) 
+        if (ev.OldRole is RoleTypeId.ClassD && StatsSystemPlugin.Singleton.Config.ClassDKillsTracking) 
             ev.Attacker?.IncrementStat("ClassDKills");
-        if (ev.Attacker?.Role is RoleTypeId.ClassD && StatsSystemPlugin.Instance.Config.KillsAsClassDTracking)
+        if (ev.Attacker?.Role is RoleTypeId.ClassD && StatsSystemPlugin.Singleton.Config.KillsAsClassDTracking)
             ev.Attacker?.IncrementStat("KillsAsClassD");
-        if (ev.OldRole.IsScp() && StatsSystemPlugin.Instance.Config.ScpKillsTracking)
+        if (ev.OldRole.IsScp() && StatsSystemPlugin.Singleton.Config.ScpKillsTracking)
             ev.Attacker?.IncrementStat("ScpKills");
-        if (ev.DamageHandler is MicroHidDamageHandler && StatsSystemPlugin.Instance.Config.MicroHidKillsTracking)
+        if (ev.DamageHandler is MicroHidDamageHandler && StatsSystemPlugin.Singleton.Config.MicroHidKillsTracking)
             ev.Attacker?.IncrementStat("MicroHidKills");
         base.OnPlayerDeath(ev);
     }
-    
+
+    public override void OnServerWaitingForPlayers()
+    {
+        try
+        {
+            var currentVersion = StatsSystemPlugin.Singleton.Version; // snapshot
+            _ = Task.Run(() => StatsSystemPlugin.CheckForUpdatesAsync(currentVersion));
+        }
+        catch (Exception ex)
+        {
+            LogManager.Error($"Version check could not be started.\n{ex}");
+        }
+        base.OnServerWaitingForPlayers();
+    }
+
     internal static void OnQuit()
     {
-        if (StatsSystemPlugin.Instance.Config.PlaytimeTracking)
+        if (StatsSystemPlugin.Singleton.Config.PlaytimeTracking)
         {
             foreach (var kvp in PlayerJoinTimes)
             {

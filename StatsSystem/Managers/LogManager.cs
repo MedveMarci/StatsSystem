@@ -1,24 +1,23 @@
 ﻿using System;
-using Logger = LabApi.Features.Console.Logger;
+using LabApi.Features.Console;
 
 namespace StatsSystem.Managers;
 
-internal static class LogManager
+internal abstract class LogManager
 {
-    private static bool DebugEnabled => StatsSystemPlugin.Instance.Config.Debug;
+    private static bool DebugEnabled => StatsSystemPlugin.Singleton.Config.Debug;
 
     public static void Debug(string message)
     {
         if (!DebugEnabled)
             return;
 
-        Logger.Raw($"[DEBUG] [{StatsSystemPlugin.Instance.Name}] {message}", ConsoleColor.Cyan);
-        
+        Logger.Raw($"[DEBUG] [{StatsSystemPlugin.Singleton.Name}] {message}", ConsoleColor.Green);
     }
-    
+
     public static void Info(string message, ConsoleColor color = ConsoleColor.Cyan)
     {
-        Logger.Raw($"[INFO] [{StatsSystemPlugin.Instance.Name}] {message}", color);
+        Logger.Raw($"[INFO] [{StatsSystemPlugin.Singleton.Name}] {message}", color);
     }
 
     public static void Warn(string message)
@@ -28,6 +27,6 @@ internal static class LogManager
 
     public static void Error(string message)
     {
-        Logger.Error(message);
+        Logger.Raw($"[ERROR] [{StatsSystemPlugin.Singleton.Name}] Details:\nVersion: {StatsSystemPlugin.Singleton.Version}\n{message}", ConsoleColor.Red);
     }
 }
