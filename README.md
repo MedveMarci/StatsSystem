@@ -7,6 +7,7 @@ A SCP: Secret Laboratory LabApi plugin and API to manage different statistics fo
 - You can toggle the default Statistics in the ``config.yml``.
 - With the default command .gs or .getstat you can get your own statistics.
 - With the ``API`` you can manage and customzie the statistics for the players.
+- The Player's Statistics are saved in ``SCP Secret Laboratory\LabAPI\configs\StatsSystem\player_stats.json``.
 
 # For Support
 <div align="left">
