@@ -39,9 +39,6 @@
         <Reference Include="Mirror">
           <HintPath>$(sl_references)\Mirror.dll</HintPath>
         </Reference>
-        <PackageReference Include="Newtonsoft.Json">
-            <Version>13.0.3</Version>
-        </PackageReference>
         <Reference Include="mscorlib" />
         <Reference Include="System"/>
         <Reference Include="System.Core"/>

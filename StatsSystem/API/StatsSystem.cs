@@ -3,10 +3,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using LabApi.Features.Wrappers;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using StatsSystem.Extensions;
 using StatsSystem.Managers;
 
@@ -127,12 +126,12 @@ internal class StatsSystem
     {
         try
         {
-            var settings = new JsonSerializerSettings
+            var options = new JsonSerializerOptions
             {
-                Converters = new List<JsonConverter> { new TimeSpanConverter() },
-                Formatting = Formatting.Indented
+                Converters = { new TimeSpanConverter() },
+                WriteIndented = true
             };
-            var json = JsonConvert.SerializeObject(_playerStats, settings);
+            var json = JsonSerializer.Serialize(_playerStats, options);
             File.WriteAllText(_saveFilePath, json);
         }
         catch (Exception ex)
@@ -145,12 +144,12 @@ internal class StatsSystem
     {
         try
         {
-            var settings = new JsonSerializerSettings
+            var options = new JsonSerializerOptions
             {
-                Converters = new List<JsonConverter> { new TimeSpanConverter() },
-                Formatting = Formatting.Indented
+                Converters = { new TimeSpanConverter() },
+                WriteIndented = true
             };
-            var json = JsonConvert.SerializeObject(_playerStats, settings);
+            var json = JsonSerializer.Serialize(_playerStats, options);
             using var writer = new StreamWriter(_saveFilePath, false);
             await writer.WriteAsync(json);
         }
@@ -169,40 +168,18 @@ internal class StatsSystem
             var json = File.ReadAllText(_saveFilePath);
             if (string.IsNullOrWhiteSpace(json)) return;
 
-            var settings = new JsonSerializerSettings
+            var options = new JsonSerializerOptions
             {
-                Converters = new List<JsonConverter> { new TimeSpanConverter() }
+                Converters = { new TimeSpanConverter() }
             };
 
-            var root = JObject.Parse(json);
-            foreach (var prop in root.Properties())
+            var dict = JsonSerializer.Deserialize<Dictionary<string, PlayerStats>>(json, options);
+            if (dict != null)
             {
-                var userId = prop.Name;
-                if (prop.Value is not JObject obj)
-                    continue;
-
-                PlayerStats stats;
-                if (obj.ContainsKey("Counters") || obj.ContainsKey("Durations"))
+                foreach (var kv in dict)
                 {
-                    stats = obj.ToObject<PlayerStats>(JsonSerializer.Create(settings)) ?? new PlayerStats();
+                    _playerStats[kv.Key] = kv.Value;
                 }
-                else
-                {
-                    // Legacy migration
-                    stats = new PlayerStats();
-                    var kills = (int?)obj["Kills"] ?? 0;
-                    var deaths = (int?)obj["Deaths"] ?? 0;
-                    var totalStr = (string)obj["TotalPlayTime"];
-                    TimeSpan total = TimeSpan.Zero;
-                    if (!string.IsNullOrEmpty(totalStr))
-                        TimeSpan.TryParse(totalStr, out total);
-
-                    if (kills != 0) stats.SetCounter("Kills", kills);
-                    if (deaths != 0) stats.SetCounter("Deaths", deaths);
-                    if (total != TimeSpan.Zero) stats.SetDuration("TotalPlayTime", total);
-                }
-
-                _playerStats[userId] = stats;
             }
         }
         catch (Exception ex)
