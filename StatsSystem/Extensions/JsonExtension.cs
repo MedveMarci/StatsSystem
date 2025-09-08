@@ -1,29 +1,20 @@
 ﻿using System;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace StatsSystem.Extensions;
 
-internal sealed class TimeSpanConverter : JsonConverter
+internal sealed class TimeSpanConverter : JsonConverter<TimeSpan>
 {
-    public override bool CanConvert(Type objectType) =>
-        objectType == typeof(TimeSpan) || objectType == typeof(TimeSpan?);
-
-    public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+    public override TimeSpan Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        if (reader.TokenType == JsonToken.Null)
-            return null;
-        if (reader.TokenType == JsonToken.String && TimeSpan.TryParse((string)reader.Value, out var result))
+        if (reader.TokenType == JsonTokenType.String && TimeSpan.TryParse(reader.GetString(), out var result))
             return result;
-        throw new JsonSerializationException($"Cannot convert {reader.Value} to TimeSpan");
+        throw new JsonException($"Cannot convert {reader.GetString()} to TimeSpan");
     }
 
-    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+    public override void Write(Utf8JsonWriter writer, TimeSpan value, JsonSerializerOptions options)
     {
-        if (value == null)
-        {
-            writer.WriteNull();
-            return;
-        }
-        writer.WriteValue(((TimeSpan)value).ToString());
+        writer.WriteStringValue(value.ToString());
     }
 }
