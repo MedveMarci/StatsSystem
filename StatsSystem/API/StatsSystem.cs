@@ -18,16 +18,32 @@ public class PlayerStats
     public ConcurrentDictionary<string, ConcurrentDictionary<string, long>> DailyCounters { get; set; } = new();
     public ConcurrentDictionary<string, ConcurrentDictionary<string, TimeSpan>> DailyDurations { get; set; } = new();
 
-    public long GetCounter(string key) => Counters.TryGetValue(key, out var v) ? v : 0L;
-    public void SetCounter(string key, long value) => Counters[key] = value;
+    public long GetCounter(string key)
+    {
+        return Counters.TryGetValue(key, out var v) ? v : 0L;
+    }
+
+    public void SetCounter(string key, long value)
+    {
+        Counters[key] = value;
+    }
+
     public void IncrementCounter(string key, long amount = 1)
     {
         Counters.AddOrUpdate(key, amount, (_, old) => old + amount);
         IncrementDailyCounter(key, amount);
     }
 
-    public TimeSpan GetDuration(string key) => Durations.TryGetValue(key, out var v) ? v : TimeSpan.Zero;
-    public void SetDuration(string key, TimeSpan value) => Durations[key] = value;
+    public TimeSpan GetDuration(string key)
+    {
+        return Durations.TryGetValue(key, out var v) ? v : TimeSpan.Zero;
+    }
+
+    public void SetDuration(string key, TimeSpan value)
+    {
+        Durations[key] = value;
+    }
+
     public void AddDuration(string key, TimeSpan delta)
     {
         Durations.AddOrUpdate(key, delta, (_, old) => old + delta);
@@ -41,18 +57,14 @@ public class PlayerStats
             var dateKey = DateTime.UtcNow.ToString("yyyy-MM-dd");
             var perDay = DailyCounters.GetOrAdd(key, _ => new ConcurrentDictionary<string, long>());
             perDay.AddOrUpdate(dateKey, amount, (_, old) => old + amount);
-            
+
             var cfg = StatsSystemPlugin.Singleton?.Config;
             if (cfg?.LastDays is not { Count: > 0 }) return;
             var max = cfg.LastDays.Max();
             var threshold = DateTime.UtcNow.Date.AddDays(-(max + 2));
             foreach (var kv in perDay.Keys)
-            {
                 if (DateTime.TryParse(kv, out var parsed) && parsed < threshold)
-                {
                     perDay.TryRemove(kv, out _);
-                }
-            }
         }
         catch (Exception e)
         {
@@ -73,10 +85,8 @@ public class PlayerStats
             var max = cfg.LastDays.Max();
             var threshold = DateTime.UtcNow.Date.AddDays(-(max + 2));
             foreach (var k in perDay.Keys)
-            {
                 if (DateTime.TryParse(k, out var parsed) && parsed < threshold)
                     perDay.TryRemove(k, out _);
-            }
         }
         catch (Exception e)
         {
@@ -96,6 +106,7 @@ public class PlayerStats
             if (!DateTime.TryParse(kv.Key, out var d)) continue;
             if (d >= from && d <= today) total += kv.Value;
         }
+
         return total;
     }
 
@@ -111,6 +122,7 @@ public class PlayerStats
             if (!DateTime.TryParse(kv.Key, out var d)) continue;
             if (d >= from && d <= today) total += kv.Value;
         }
+
         return total;
     }
 
@@ -127,8 +139,10 @@ public class PlayerStats
             if (!DateTime.TryParse(kv.Key, out var d)) continue;
             if (d >= weekStart && d < weekEnd) total += kv.Value;
         }
+
         return total;
     }
+
     internal TimeSpan SumCurrentWeekDuration(string key)
     {
         if (!DailyDurations.TryGetValue(key, out var perDay)) return TimeSpan.Zero;
@@ -142,6 +156,7 @@ public class PlayerStats
             if (!DateTime.TryParse(kv.Key, out var d)) continue;
             if (d >= weekStart && d < weekEnd) total += kv.Value;
         }
+
         return total;
     }
 }
@@ -162,13 +177,13 @@ internal class StatsSystem
     {
         return _playerStats.TryGetValue(player.UserId, out stats);
     }
-    
+
     internal bool TryGetPlayerStats(string userId, out PlayerStats stats)
     {
         if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentNullException(nameof(userId));
         return _playerStats.TryGetValue(userId, out stats);
     }
-    
+
     internal PlayerStats GetOrCreatePlayerStats(Player player)
     {
         return player.DoNotTrack ? null : _playerStats.GetOrAdd(player.UserId, new PlayerStats());
@@ -213,13 +228,16 @@ internal class StatsSystem
 
     internal long GetPlayerLastDaysCounter(Player player, string key, int days)
     {
-        return days == 7 ? GetOrCreatePlayerStats(player).SumCurrentWeek(key) :
-            GetOrCreatePlayerStats(player).SumLastDays(key, days);
+        return days == 7
+            ? GetOrCreatePlayerStats(player).SumCurrentWeek(key)
+            : GetOrCreatePlayerStats(player).SumLastDays(key, days);
     }
 
     internal long GetPlayerLastDaysCounter(string userId, string key, int days)
     {
-        return days == 7 ? GetOrCreatePlayerStats(userId).SumCurrentWeek(key) : GetOrCreatePlayerStats(userId).SumLastDays(key, days);
+        return days == 7
+            ? GetOrCreatePlayerStats(userId).SumCurrentWeek(key)
+            : GetOrCreatePlayerStats(userId).SumLastDays(key, days);
     }
 
     internal TimeSpan GetPlayerLastDaysDuration(Player player, string key, int days)
@@ -236,25 +254,22 @@ internal class StatsSystem
             : GetOrCreatePlayerStats(userId).SumLastDaysDuration(key, days);
     }
 
-    internal Dictionary<int, long> GetPlayerConfiguredLastDaysCounters(Player player, string key, IEnumerable<int> daysList)
+    internal Dictionary<int, long> GetPlayerConfiguredLastDaysCounters(Player player, string key,
+        IEnumerable<int> daysList)
     {
         var dict = new Dictionary<int, long>();
-        foreach (var d in daysList)
-        {
-            dict[d] = GetPlayerLastDaysCounter(player, key, d);
-        }
+        foreach (var d in daysList) dict[d] = GetPlayerLastDaysCounter(player, key, d);
         return dict;
     }
 
-    internal Dictionary<int, long> GetPlayerConfiguredLastDaysCounters(string userId, string key, IEnumerable<int> daysList)
+    internal Dictionary<int, long> GetPlayerConfiguredLastDaysCounters(string userId, string key,
+        IEnumerable<int> daysList)
     {
         var dict = new Dictionary<int, long>();
-        foreach (var d in daysList)
-        {
-            dict[d] = GetPlayerLastDaysCounter(userId, key, d);
-        }
+        foreach (var d in daysList) dict[d] = GetPlayerLastDaysCounter(userId, key, d);
         return dict;
     }
+
     internal void AddPlayerDuration(Player player, string key, TimeSpan delta)
     {
         GetOrCreatePlayerStats(player).AddDuration(key, delta);
@@ -339,12 +354,8 @@ internal class StatsSystem
 
             var dict = JsonSerializer.Deserialize<Dictionary<string, PlayerStats>>(json, options);
             if (dict != null)
-            {
                 foreach (var kv in dict)
-                {
                     _playerStats[kv.Key] = kv.Value;
-                }
-            }
         }
         catch (Exception ex)
         {

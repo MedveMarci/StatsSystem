@@ -8,7 +8,7 @@ namespace StatsSystem.Extensions;
 public static class PlayerExtension
 {
     /// <summary>
-    /// Tries to get the stats container for the specified player.
+    ///     Tries to get the stats container for the specified player.
     /// </summary>
     /// <param name="player">Player to query.</param>
     /// <param name="stats">The player's stats if found.</param>
@@ -19,7 +19,7 @@ public static class PlayerExtension
     }
 
     /// <summary>
-    /// Tries to get the stats container for the specified userId.
+    ///     Tries to get the stats container for the specified userId.
     /// </summary>
     /// <param name="userId">User identifier string.</param>
     /// <param name="stats">The player's stats if found.</param>
@@ -28,35 +28,35 @@ public static class PlayerExtension
     {
         return StatsSystemPlugin.StatsSystem.TryGetPlayerStats(userId, out stats);
     }
-    
+
     /// <summary>
-    /// Gets the stats container for the player, creating one if missing.
+    ///     Gets the stats container for the player, creating one if missing.
     /// </summary>
     /// <param name="player">Player to query.</param>
-    /// <returns>The player's <see cref="PlayerStats"/> instance.</returns>
+    /// <returns>The player's <see cref="PlayerStats" /> instance.</returns>
     public static PlayerStats GetOrCreatePlayerStats(this Player player)
     {
         return StatsSystemPlugin.StatsSystem.GetOrCreatePlayerStats(player);
     }
 
     /// <summary>
-    /// Gets the stats container for the userId, creating one if missing.
+    ///     Gets the stats container for the userId, creating one if missing.
     /// </summary>
     /// <param name="userId">User identifier string.</param>
-    /// <returns>The player's <see cref="PlayerStats"/> instance.</returns>
+    /// <returns>The player's <see cref="PlayerStats" /> instance.</returns>
     public static PlayerStats GetOrCreatePlayerStats(this string userId)
     {
         return StatsSystemPlugin.StatsSystem.GetOrCreatePlayerStats(userId);
     }
-    
+
     /// <summary>
-    /// Sets a stat value for the given key.
-    /// Supports numeric types (mapped to counters) and <see cref="TimeSpan"/> (mapped to durations).
+    ///     Sets a stat value for the given key.
+    ///     Supports numeric types (mapped to counters) and <see cref="TimeSpan" /> (mapped to durations).
     /// </summary>
     /// <param name="player">Player to modify.</param>
     /// <param name="key">Stat key.</param>
     /// <param name="value">New value.</param>
-    /// <typeparam name="T">Numeric type or <see cref="TimeSpan"/>.</typeparam>
+    /// <typeparam name="T">Numeric type or <see cref="TimeSpan" />.</typeparam>
     public static void SetStat<T>(this Player player, string key, T value)
     {
         switch (value)
@@ -77,13 +77,14 @@ public static class PlayerExtension
                 StatsSystemPlugin.StatsSystem.SetPlayerCounter(player, key, l);
                 break;
             default:
-                throw new ArgumentException($"Unsupported stat type {typeof(T).Name} for key '{key}'. Use numeric types or TimeSpan.");
+                throw new ArgumentException(
+                    $"Unsupported stat type {typeof(T).Name} for key '{key}'. Use numeric types or TimeSpan.");
         }
     }
 
     /// <summary>
-    /// Sets a stat value for the given key by userId.
-    /// Supports numeric types (mapped to counters) and <see cref="TimeSpan"/> (mapped to durations).
+    ///     Sets a stat value for the given key by userId.
+    ///     Supports numeric types (mapped to counters) and <see cref="TimeSpan" /> (mapped to durations).
     /// </summary>
     public static void SetStat<T>(this string userId, string key, T value)
     {
@@ -105,16 +106,17 @@ public static class PlayerExtension
                 StatsSystemPlugin.StatsSystem.SetPlayerCounter(userId, key, l);
                 break;
             default:
-                throw new ArgumentException($"Unsupported stat type {typeof(T).Name} for key '{key}'. Use numeric types or TimeSpan.");
+                throw new ArgumentException(
+                    $"Unsupported stat type {typeof(T).Name} for key '{key}'. Use numeric types or TimeSpan.");
         }
     }
 
     /// <summary>
-    /// Gets a stat value for the given key.
+    ///     Gets a stat value for the given key.
     /// </summary>
     /// <param name="player">Player to query.</param>
     /// <param name="key">Stat key.</param>
-    /// <typeparam name="T">Numeric type or <see cref="TimeSpan"/>.</typeparam>
+    /// <typeparam name="T">Numeric type or <see cref="TimeSpan" />.</typeparam>
     /// <returns>The stat value converted to T.</returns>
     public static T GetStat<T>(this Player player, string key)
     {
@@ -130,11 +132,12 @@ public static class PlayerExtension
         if (typeof(T) == typeof(short)) return (T)(object)(short)counter;
         if (typeof(T) == typeof(byte)) return (T)(object)(byte)counter;
 
-        throw new ArgumentException($"Unsupported stat type {typeof(T).Name} for key '{key}'. Use numeric types or TimeSpan.");
+        throw new ArgumentException(
+            $"Unsupported stat type {typeof(T).Name} for key '{key}'. Use numeric types or TimeSpan.");
     }
 
     /// <summary>
-    /// Gets a stat value for the given key by userId.
+    ///     Gets a stat value for the given key by userId.
     /// </summary>
     public static T GetStat<T>(this string userId, string key)
     {
@@ -150,17 +153,18 @@ public static class PlayerExtension
         if (typeof(T) == typeof(short)) return (T)(object)(short)counter;
         if (typeof(T) == typeof(byte)) return (T)(object)(byte)counter;
 
-        throw new ArgumentException($"Unsupported stat type {typeof(T).Name} for key '{key}'. Use numeric types or TimeSpan.");
+        throw new ArgumentException(
+            $"Unsupported stat type {typeof(T).Name} for key '{key}'. Use numeric types or TimeSpan.");
     }
 
     /// <summary>
-    /// Adds a delta to the stat defined by key.
-    /// Numeric types increment counters; <see cref="TimeSpan"/> adds to durations.
+    ///     Adds a delta to the stat defined by key.
+    ///     Numeric types increment counters; <see cref="TimeSpan" /> adds to durations.
     /// </summary>
     /// <param name="player">Player to modify.</param>
     /// <param name="key">Stat key.</param>
     /// <param name="delta">Amount to add.</param>
-    /// <typeparam name="T">Numeric type or <see cref="TimeSpan"/>.</typeparam>
+    /// <typeparam name="T">Numeric type or <see cref="TimeSpan" />.</typeparam>
     public static void AddStat<T>(this Player player, string key, T delta)
     {
         switch (delta)
@@ -181,13 +185,14 @@ public static class PlayerExtension
                 StatsSystemPlugin.StatsSystem.ModifyPlayerCounter(player, key, l);
                 break;
             default:
-                throw new ArgumentException($"Unsupported stat type {typeof(T).Name} for key '{key}'. Use numeric types or TimeSpan.");
+                throw new ArgumentException(
+                    $"Unsupported stat type {typeof(T).Name} for key '{key}'. Use numeric types or TimeSpan.");
         }
     }
 
     /// <summary>
-    /// Adds a delta to the stat defined by key for a userId.
-    /// Numeric types increment counters; <see cref="TimeSpan"/> adds to durations.
+    ///     Adds a delta to the stat defined by key for a userId.
+    ///     Numeric types increment counters; <see cref="TimeSpan" /> adds to durations.
     /// </summary>
     public static void AddStat<T>(this string userId, string key, T delta)
     {
@@ -209,12 +214,13 @@ public static class PlayerExtension
                 StatsSystemPlugin.StatsSystem.ModifyPlayerCounter(userId, key, l);
                 break;
             default:
-                throw new ArgumentException($"Unsupported stat type {typeof(T).Name} for key '{key}'. Use numeric types or TimeSpan.");
+                throw new ArgumentException(
+                    $"Unsupported stat type {typeof(T).Name} for key '{key}'. Use numeric types or TimeSpan.");
         }
     }
 
     /// <summary>
-    /// Increments a numeric counter by the specified amount. Defaults to 1.
+    ///     Increments a numeric counter by the specified amount. Defaults to 1.
     /// </summary>
     /// <param name="player">Player to modify.</param>
     /// <param name="key">Counter key.</param>
@@ -225,7 +231,7 @@ public static class PlayerExtension
     }
 
     /// <summary>
-    /// Increments a numeric counter by the specified amount for a userId. Defaults to 1.
+    ///     Increments a numeric counter by the specified amount for a userId. Defaults to 1.
     /// </summary>
     public static void IncrementStat(this string userId, string key, long amount = 1)
     {
@@ -233,7 +239,7 @@ public static class PlayerExtension
     }
 
     /// <summary>
-    /// Adds a duration to a time-based stat.
+    ///     Adds a duration to a time-based stat.
     /// </summary>
     /// <param name="player">Player to modify.</param>
     /// <param name="key">Duration key.</param>
@@ -244,7 +250,7 @@ public static class PlayerExtension
     }
 
     /// <summary>
-    /// Adds a duration to a time-based stat by userId.
+    ///     Adds a duration to a time-based stat by userId.
     /// </summary>
     public static void AddDuration(this string userId, string key, TimeSpan time)
     {
@@ -252,7 +258,7 @@ public static class PlayerExtension
     }
 
     /// <summary>
-    /// Gets a time-based stat value.
+    ///     Gets a time-based stat value.
     /// </summary>
     /// <param name="player">Player to query.</param>
     /// <param name="key">Duration key.</param>
@@ -263,7 +269,7 @@ public static class PlayerExtension
     }
 
     /// <summary>
-    /// Gets a time-based stat value by userId.
+    ///     Gets a time-based stat value by userId.
     /// </summary>
     public static TimeSpan GetDuration(this string userId, string key)
     {
@@ -271,7 +277,7 @@ public static class PlayerExtension
     }
 
     /// <summary>
-    /// Gets a numeric counter value.
+    ///     Gets a numeric counter value.
     /// </summary>
     /// <param name="player">Player to query.</param>
     /// <param name="key">Counter key.</param>
@@ -282,7 +288,7 @@ public static class PlayerExtension
     }
 
     /// <summary>
-    /// Gets a numeric counter value by userId.
+    ///     Gets a numeric counter value by userId.
     /// </summary>
     public static long GetCounter(this string userId, string key)
     {
@@ -290,11 +296,11 @@ public static class PlayerExtension
     }
 
     /// <summary>
-    /// Returns a snapshot of all players' stats keyed by UserId. Useful for cross-plugin querying.
+    ///     Returns a snapshot of all players' stats keyed by UserId. Useful for cross-plugin querying.
     /// </summary>
     /// <remarks>
-    /// The returned dictionary is a shallow copy and won't reflect future additions/removals.
-    /// The <see cref="PlayerStats"/> instances are shared references.
+    ///     The returned dictionary is a shallow copy and won't reflect future additions/removals.
+    ///     The <see cref="PlayerStats" /> instances are shared references.
     /// </remarks>
     /// <returns>Read-only dictionary mapping UserId to PlayerStats.</returns>
     public static IReadOnlyDictionary<string, PlayerStats> GetAllPlayerStats()

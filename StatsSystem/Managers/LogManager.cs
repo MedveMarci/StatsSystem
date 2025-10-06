@@ -27,6 +27,8 @@ internal abstract class LogManager
 
     public static void Error(string message)
     {
-        Logger.Raw($"[ERROR] [{StatsSystemPlugin.Singleton.Name}] Details:\nVersion: {StatsSystemPlugin.Singleton.Version}\n{message}", ConsoleColor.Red);
+        Logger.Raw(
+            $"[ERROR] [{StatsSystemPlugin.Singleton.Name}] Details:\nVersion: {StatsSystemPlugin.Singleton.Version}\n{message}",
+            ConsoleColor.Red);
     }
 }

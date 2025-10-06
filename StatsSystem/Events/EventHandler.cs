@@ -29,6 +29,7 @@ internal class EventHandler : CustomEventsHandler
                 LogManager.Debug($"Player {player.UserId} joined at {PlayerJoinTimes[player.UserId]}");
             }
         }
+
         base.OnServerRoundStarted();
     }
 
@@ -38,7 +39,6 @@ internal class EventHandler : CustomEventsHandler
         {
             foreach (var kvp in PlayerJoinTimes)
             {
-                
                 var player = Player.Get(kvp.Key);
                 if (player == null) continue;
                 if (player.DoNotTrack) continue;
@@ -48,6 +48,7 @@ internal class EventHandler : CustomEventsHandler
 
             PlayerJoinTimes.Clear();
         }
+
         base.OnServerRoundEnded(ev);
     }
 
@@ -63,6 +64,7 @@ internal class EventHandler : CustomEventsHandler
                 LogManager.Debug($"Player {player.UserId} joined at {PlayerJoinTimes[player.UserId]}");
             }
         }
+
         base.OnServerRoundRestarted();
     }
 
@@ -98,7 +100,7 @@ internal class EventHandler : CustomEventsHandler
             ev.Attacker?.IncrementStat("Kills");
         if (StatsSystemPlugin.Singleton.Config.DeathsTracking)
             ev.Player.IncrementStat("Deaths");
-        if (ev.OldRole is RoleTypeId.ClassD && StatsSystemPlugin.Singleton.Config.ClassDKillsTracking) 
+        if (ev.OldRole is RoleTypeId.ClassD && StatsSystemPlugin.Singleton.Config.ClassDKillsTracking)
             ev.Attacker?.IncrementStat("ClassDKills");
         if (ev.Attacker?.Role is RoleTypeId.ClassD && StatsSystemPlugin.Singleton.Config.KillsAsClassDTracking)
             ev.Attacker?.IncrementStat("KillsAsClassD");
@@ -120,6 +122,7 @@ internal class EventHandler : CustomEventsHandler
         {
             LogManager.Error($"Version check could not be started.\n{ex}");
         }
+
         base.OnServerWaitingForPlayers();
     }
 
@@ -138,6 +141,7 @@ internal class EventHandler : CustomEventsHandler
 
             PlayerJoinTimes.Clear();
         }
+
         StatsSystemPlugin.StatsSystem.SaveStats();
         LogManager.Debug("Player stats saved on quit.");
         Shutdown.OnQuit -= OnQuit;
