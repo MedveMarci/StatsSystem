@@ -301,4 +301,36 @@ public static class PlayerExtension
     {
         return StatsSystemPlugin.StatsSystem.GetAllPlayerStatsSnapshot();
     }
+
+    public static long GetLastDaysCounter(this Player player, string key, int days)
+    {
+        return StatsSystemPlugin.StatsSystem.GetPlayerLastDaysCounter(player, key, days);
+    }
+
+    public static long GetLastDaysCounter(this string userId, string key, int days)
+    {
+        return StatsSystemPlugin.StatsSystem.GetPlayerLastDaysCounter(userId, key, days);
+    }
+
+    public static TimeSpan GetLastDaysDuration(this Player player, string key, int days)
+    {
+        return StatsSystemPlugin.StatsSystem.GetPlayerLastDaysDuration(player, key, days);
+    }
+
+    public static TimeSpan GetLastDaysDuration(this string userId, string key, int days)
+    {
+        return StatsSystemPlugin.StatsSystem.GetPlayerLastDaysDuration(userId, key, days);
+    }
+
+    public static Dictionary<int, long> GetConfiguredLastDaysCounters(this Player player, string key)
+    {
+        var cfg = StatsSystemPlugin.Singleton.Config;
+        return StatsSystemPlugin.StatsSystem.GetPlayerConfiguredLastDaysCounters(player, key, cfg.LastDays);
+    }
+
+    public static Dictionary<int, long> GetConfiguredLastDaysCounters(this string userId, string key)
+    {
+        var cfg = StatsSystemPlugin.Singleton.Config;
+        return StatsSystemPlugin.StatsSystem.GetPlayerConfiguredLastDaysCounters(userId, key, cfg.LastDays);
+    }
 }

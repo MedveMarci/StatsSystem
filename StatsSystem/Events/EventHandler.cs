@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using LabApi.Events.Arguments.PlayerEvents;
+using LabApi.Events.Arguments.ServerEvents;
 using LabApi.Events.CustomHandlers;
 using LabApi.Features.Extensions;
 using LabApi.Features.Wrappers;
@@ -15,9 +16,59 @@ namespace StatsSystem.Events;
 internal class EventHandler : CustomEventsHandler
 {
     internal static readonly ConcurrentDictionary<string, DateTime> PlayerJoinTimes = new();
-    
+
+    public override void OnServerRoundStarted()
+    {
+        if (StatsSystemPlugin.Singleton.Config.PlaytimeTracking)
+        {
+            PlayerJoinTimes.Clear();
+            foreach (var player in Player.ReadyList)
+            {
+                if (player.DoNotTrack) continue;
+                PlayerJoinTimes[player.UserId] = DateTime.Now;
+                LogManager.Debug($"Player {player.UserId} joined at {PlayerJoinTimes[player.UserId]}");
+            }
+        }
+        base.OnServerRoundStarted();
+    }
+
+    public override void OnServerRoundEnded(RoundEndedEventArgs ev)
+    {
+        if (StatsSystemPlugin.Singleton.Config.PlaytimeTracking)
+        {
+            foreach (var kvp in PlayerJoinTimes)
+            {
+                
+                var player = Player.Get(kvp.Key);
+                if (player == null) continue;
+                if (player.DoNotTrack) continue;
+                var playTime = DateTime.Now - kvp.Value;
+                player.AddDuration("TotalPlayTime", playTime);
+            }
+
+            PlayerJoinTimes.Clear();
+        }
+        base.OnServerRoundEnded(ev);
+    }
+
+    public override void OnServerRoundRestarted()
+    {
+        if (StatsSystemPlugin.Singleton.Config.PlaytimeTracking)
+        {
+            PlayerJoinTimes.Clear();
+            foreach (var player in Player.ReadyList)
+            {
+                if (player.DoNotTrack) continue;
+                PlayerJoinTimes[player.UserId] = DateTime.Now;
+                LogManager.Debug($"Player {player.UserId} joined at {PlayerJoinTimes[player.UserId]}");
+            }
+        }
+        base.OnServerRoundRestarted();
+    }
+
     public override void OnPlayerJoined(PlayerJoinedEventArgs ev)
     {
+        if (!Round.IsRoundStarted) return;
         if (ev.Player.DoNotTrack) return;
         if (!StatsSystemPlugin.Singleton.Config.PlaytimeTracking) return;
         PlayerJoinTimes[ev.Player.UserId] = DateTime.Now;
@@ -27,6 +78,7 @@ internal class EventHandler : CustomEventsHandler
 
     public override void OnPlayerLeft(PlayerLeftEventArgs ev)
     {
+        if (!Round.IsRoundStarted) return;
         if (ev.Player.DoNotTrack) return;
         if (!StatsSystemPlugin.Singleton.Config.PlaytimeTracking) return;
         if (ev.Player == null || string.IsNullOrEmpty(ev.Player.UserId)) return;
@@ -39,6 +91,7 @@ internal class EventHandler : CustomEventsHandler
 
     public override void OnPlayerDeath(PlayerDeathEventArgs ev)
     {
+        if (!Round.IsRoundStarted) return;
         if (ev.Player.DoNotTrack) return;
         LogManager.Debug($"Player {ev.Player.UserId} died. Attacker: {ev.Attacker?.UserId ?? "None"}");
         if (StatsSystemPlugin.Singleton.Config.KillsTracking)

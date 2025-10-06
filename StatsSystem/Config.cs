@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Generic;
+using System.ComponentModel;
 
 namespace StatsSystem;
 
@@ -27,4 +28,7 @@ internal class Config
     
     [Description("Enable or disable the MicroHID kills tracking feature. When enabled, kills made by MicroHID will be tracked and saved.")]
     public bool MicroHidKillsTracking { get; set; } = true;
+    
+    [Description("You can set here the days for which the 'last days' statistics will be tracked. For example, if you set this to [7, 30], the plugin will track statistics for the last 7 days and the last 30 days.")]
+    public List<int> LastDays { get; set; } = [7, 30, 90];
 }

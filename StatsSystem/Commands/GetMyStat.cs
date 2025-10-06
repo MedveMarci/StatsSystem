@@ -8,7 +8,7 @@ using StatsSystem.Extensions;
 namespace StatsSystem.Commands;
 
 [CommandHandler(typeof(ClientCommandHandler))]
-public class ScpLeave : ICommand
+public class GetStat : ICommand
 {
     public string Command => "getstat";
 
@@ -46,10 +46,40 @@ public class ScpLeave : ICommand
             Events.EventHandler.PlayerJoinTimes[player.UserId] = DateTime.Now;
         }
 
-        var statLines = new List<string> { "Statistics:" };
-        statLines.AddRange(stats.Counters.Select(kvp => $"- {kvp.Key}: {kvp.Value}"));
+        var statLines = new List<string> { "Basic stats:" };
 
-        statLines.AddRange(stats.Durations.Select(kvp => $"- {kvp.Key}: {FormatTime(kvp.Value)}"));
+        statLines.AddRange(stats.Counters.OrderBy(k => k.Key).Select(kvp => $"- {kvp.Key}: {kvp.Value}"));
+        statLines.AddRange(stats.Durations.OrderBy(k => k.Key).Select(kvp => $"- {kvp.Key}: {FormatTime(kvp.Value)}"));
+
+        statLines.Add("");
+
+        var lastDaysCfg = StatsSystemPlugin.Singleton?.Config?.LastDays;
+        if (lastDaysCfg is { Count: > 0 })
+        {
+            var ordered = lastDaysCfg.Distinct().Where(d => d > 0).OrderBy(d => d).ToList();
+            if (ordered.Count > 0 && (stats.Counters.Count > 0 || stats.Durations.Count > 0))
+            {
+                foreach (var d in ordered)
+                {
+                    var header = $"Last {d} Days:";
+                    statLines.Add(header);
+                    statLines.AddRange(from kvp in stats.Counters.OrderBy(k => k.Key) let val = player.GetLastDaysCounter(kvp.Key, d) select $"  - {kvp.Key}: {val}");
+                    statLines.AddRange(from kvp in stats.Durations.OrderBy(k => k.Key) let val = player.GetLastDaysDuration(kvp.Key, d) where val > TimeSpan.Zero select $"  * {kvp.Key}: {FormatTime(val)}");
+                    statLines.Add("");
+                }
+            }
+            else
+            {
+                statLines.Add("Last X Days: (no stats tracked yet)");
+            }
+        }
+        else
+        {
+            statLines.Add("Last X Days: (disabled / not configured)");
+        }
+
+        if (statLines.Count > 0 && string.IsNullOrWhiteSpace(statLines[statLines.Count - 1]))
+            statLines.RemoveAt(statLines.Count - 1);
 
         response = string.Join("\n", statLines);
         return true;

@@ -21,7 +21,7 @@ internal class StatsSystemPlugin : Plugin<Config>
 
     public override string Author => "MedveMarci";
 
-    public override Version Version { get; } = new(1, 0, 1);
+    public override Version Version { get; } = new(1, 1, 0);
 
     public override Version RequiredApiVersion => new(LabApiProperties.CompiledVersion);
 
@@ -119,10 +119,10 @@ internal class StatsSystemPlugin : Plugin<Config>
                 {
                     if (rel.ValueKind != JsonValueKind.Object) continue;
 
-                    bool draft = rel.TryGetProperty("draft", out var draftProp) && draftProp.ValueKind == JsonValueKind.True;
+                    var draft = rel.TryGetProperty("draft", out var draftProp) && draftProp.ValueKind == JsonValueKind.True;
                     if (draft) continue;
 
-                    bool prerelease = rel.TryGetProperty("prerelease", out var preProp) && preProp.ValueKind == JsonValueKind.True;
+                    var prerelease = rel.TryGetProperty("prerelease", out var preProp) && preProp.ValueKind == JsonValueKind.True;
                     if (!prerelease) continue;
 
                     DateTime? publishedAt = null;
@@ -181,7 +181,7 @@ internal class StatsSystemPlugin : Plugin<Config>
             if (t.StartsWith("v", StringComparison.OrdinalIgnoreCase))
                 t = t.Substring(1);
 
-            var cut = t.IndexOfAny(new[] { '-', '+' });
+            var cut = t.IndexOfAny(['-', '+']);
             if (cut >= 0)
                 t = t.Substring(0, cut);
 
