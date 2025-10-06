@@ -37,6 +37,8 @@ internal class StatsSystemPlugin : Plugin<Config>
 
     public override Version RequiredApiVersion => new(LabApiProperties.CompiledVersion);
 
+    public override bool IsTransparent => true;
+
     public override void Enable()
     {
         Singleton = this;
