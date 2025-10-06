@@ -21,29 +21,29 @@
         <DefineConstants>DEBUG;TRACE</DefineConstants>
         <ErrorReport>prompt</ErrorReport>
         <WarningLevel>4</WarningLevel>
-      <OutputPath>bin\x64\Debug\</OutputPath>
-      <PlatformTarget>x64</PlatformTarget>
-      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-      <!-- Generate XML docs to surface PlayerExtension summaries in other plugins -->
-      <DocumentationFile>bin\x64\Debug\StatsSystem.xml</DocumentationFile>
-      <!-- Optional: suppress missing XML warnings for undocumented members -->
-      <NoWarn>1591</NoWarn>
+        <OutputPath>bin\x64\Debug\</OutputPath>
+        <PlatformTarget>x64</PlatformTarget>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <!-- Generate XML docs to surface PlayerExtension summaries in other plugins -->
+        <DocumentationFile>bin\x64\Debug\StatsSystem.xml</DocumentationFile>
+        <!-- Optional: suppress missing XML warnings for undocumented members -->
+        <NoWarn>1591</NoWarn>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="System.Net.Http">
-          <Version>4.3.4</Version>
+            <Version>4.3.4</Version>
         </PackageReference>
         <PackageReference Include="System.Text.Json">
-          <Version>9.0.8</Version>
+            <Version>9.0.8</Version>
         </PackageReference>
         <Reference Include="Mirror">
-          <HintPath>$(sl_references)\Mirror.dll</HintPath>
+            <HintPath>$(sl_references)\Mirror.dll</HintPath>
         </Reference>
-        <Reference Include="mscorlib" />
+        <Reference Include="mscorlib"/>
         <Reference Include="System"/>
         <Reference Include="System.Core"/>
         <Reference Include="System.Data"/>
-        <Reference Include="System.Numerics" />
+        <Reference Include="System.Numerics"/>
         <Reference Include="System.Xml"/>
         <Reference Include="Assembly-CSharp-Publicized">
             <HintPath>$(sl_references)\Assembly-CSharp-Publicized.dll</HintPath>
@@ -55,18 +55,18 @@
             <HintPath>$(sl_references)\LabApi.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.CoreModule">
-          <HintPath>$(sl_references)\UnityEngine.CoreModule.dll</HintPath>
+            <HintPath>$(sl_references)\UnityEngine.CoreModule.dll</HintPath>
         </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="API\StatsSystem.cs" />
-        <Compile Include="Commands\GetMyStat.cs" />
-        <Compile Include="Config.cs" />
-        <Compile Include="Events\EventHandler.cs" />
-        <Compile Include="Extensions\JsonExtension.cs" />
-        <Compile Include="Extensions\PlayerExtension.cs" />
-        <Compile Include="Managers\LogManager.cs" />
-        <Compile Include="StatsSystemPlugin.cs" />
+        <Compile Include="API\StatsSystem.cs"/>
+        <Compile Include="Commands\GetMyStat.cs"/>
+        <Compile Include="Config.cs"/>
+        <Compile Include="Events\EventHandler.cs"/>
+        <Compile Include="Extensions\JsonExtension.cs"/>
+        <Compile Include="Extensions\PlayerExtension.cs"/>
+        <Compile Include="Managers\LogManager.cs"/>
+        <Compile Include="StatsSystemPlugin.cs"/>
         <Compile Include="Properties\AssemblyInfo.cs"/>
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
@@ -76,7 +76,7 @@
     </Target>
     <Target Name="AfterBuild">
     </Target>
-    -->    
+    -->
     <Target Name="AfterBuild">
         <Exec Command="xcopy &quot;$(TargetPath)&quot; &quot;%appdata%\SCP Secret Laboratory\LabAPI\plugins\global&quot; /y"/>
         <Exec Command="xcopy &quot;$(TargetDir)$(TargetName).xml&quot; &quot;%appdata%\SCP Secret Laboratory\LabAPI\plugins\global&quot; /y"/>
