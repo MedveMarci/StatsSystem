@@ -30,6 +30,9 @@
         <NoWarn>1591</NoWarn>
     </PropertyGroup>
     <ItemGroup>
+        <PackageReference Include="Northwood.LabAPI">
+          <Version>1.1.4</Version>
+        </PackageReference>
         <PackageReference Include="System.Net.Http">
             <Version>4.3.4</Version>
         </PackageReference>
@@ -50,9 +53,6 @@
         </Reference>
         <Reference Include="CommandSystem.Core">
             <HintPath>$(sl_references)\CommandSystem.Core.dll</HintPath>
-        </Reference>
-        <Reference Include="LabApi">
-            <HintPath>$(sl_references)\LabApi.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.CoreModule">
             <HintPath>$(sl_references)\UnityEngine.CoreModule.dll</HintPath>

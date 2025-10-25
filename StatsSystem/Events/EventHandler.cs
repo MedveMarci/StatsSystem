@@ -96,18 +96,18 @@ internal class EventHandler : CustomEventsHandler
         if (!Round.IsRoundStarted) return;
         if (ev.Player.DoNotTrack) return;
         LogManager.Debug($"Player {ev.Player.UserId} died. Attacker: {ev.Attacker?.UserId ?? "None"}");
-        if (StatsSystemPlugin.Singleton.Config.KillsTracking)
-            ev.Attacker?.IncrementStat("Kills");
+        if (StatsSystemPlugin.Singleton.Config.KillsTracking && ev.Attacker != null)
+            ev.Attacker.IncrementStat("Kills");
         if (StatsSystemPlugin.Singleton.Config.DeathsTracking)
             ev.Player.IncrementStat("Deaths");
-        if (ev.OldRole is RoleTypeId.ClassD && StatsSystemPlugin.Singleton.Config.ClassDKillsTracking)
-            ev.Attacker?.IncrementStat("ClassDKills");
-        if (ev.Attacker?.Role is RoleTypeId.ClassD && StatsSystemPlugin.Singleton.Config.KillsAsClassDTracking)
-            ev.Attacker?.IncrementStat("KillsAsClassD");
-        if (ev.OldRole.IsScp() && StatsSystemPlugin.Singleton.Config.ScpKillsTracking)
-            ev.Attacker?.IncrementStat("ScpKills");
-        if (ev.DamageHandler is MicroHidDamageHandler && StatsSystemPlugin.Singleton.Config.MicroHidKillsTracking)
-            ev.Attacker?.IncrementStat("MicroHidKills");
+        if (ev.OldRole is RoleTypeId.ClassD && StatsSystemPlugin.Singleton.Config.ClassDKillsTracking && ev.Attacker != null)
+            ev.Attacker.IncrementStat("ClassDKills");
+        if (ev.Attacker is { Role: RoleTypeId.ClassD } && StatsSystemPlugin.Singleton.Config.KillsAsClassDTracking)
+            ev.Attacker.IncrementStat("KillsAsClassD");
+        if (ev.OldRole.IsScp() && StatsSystemPlugin.Singleton.Config.ScpKillsTracking && ev.Attacker != null)
+            ev.Attacker.IncrementStat("ScpKills");
+        if (ev.DamageHandler is MicroHidDamageHandler && StatsSystemPlugin.Singleton.Config.MicroHidKillsTracking && ev.Attacker != null)
+            ev.Attacker.IncrementStat("MicroHidKills");
         base.OnPlayerDeath(ev);
     }
 
