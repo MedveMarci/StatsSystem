@@ -60,7 +60,7 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="API\StatsSystem.cs"/>
-        <Compile Include="Commands\GetMyStat.cs"/>
+        <Compile Include="Commands\GetStat.cs" />
         <Compile Include="Config.cs"/>
         <Compile Include="Events\EventHandler.cs"/>
         <Compile Include="Extensions\JsonExtension.cs"/>
