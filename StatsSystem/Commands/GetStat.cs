@@ -4,6 +4,7 @@ using System.Linq;
 using CommandSystem;
 using CommandSystem.Commands.RemoteAdmin;
 using LabApi.Features.Wrappers;
+using StatsSystem.API;
 using StatsSystem.Extensions;
 using EventHandler = StatsSystem.Events.EventHandler;
 
@@ -28,40 +29,44 @@ public class GetStat : ICommand
         }
 
         var player = Player.Get(sender);
-        
+        PlayerStats stats = null;
+
         if (arguments.Count > 0)
         {
             var arg = arguments.At(0);
             var targetPlayer = Player.Get(arg) ?? Player.GetByDisplayName(arg) ?? Player.GetByNickname(arg);
-            if (targetPlayer == null)
+
+            if (targetPlayer != null)
             {
-                response = $"Target player '{arg}' not found.";
-                return false;
+                player = targetPlayer;
+                stats = player.GetOrCreatePlayerStats();
             }
-            player = targetPlayer;
-        }
-        
-        if (player == null)
-        {
-            response = "Player not found.";
-            return false;
+            else if (StatsSystemPlugin.StatsSystem.TryGetPlayerStats(arg, out var offlineStats))
+            {
+                stats = offlineStats;
+            }
         }
 
-        var stats = player.GetOrCreatePlayerStats();
+        if (stats == null && player != null)
+            stats = player.GetOrCreatePlayerStats();
+
         if (stats == null)
         {
             response = "The player's stats could not be found or created.";
             return false;
         }
 
-        if (EventHandler.PlayerJoinTimes.TryGetValue(player.UserId, out var joinTime))
+        if (player != null && StatsSystemPlugin.Singleton.Config.PlaytimeTracking)
         {
-            var playTimeSpan = DateTime.Now - joinTime;
-            player.AddDuration("TotalPlayTime", playTimeSpan);
-            EventHandler.PlayerJoinTimes[player.UserId] = DateTime.Now;
+            if (EventHandler.PlayerJoinTimes.TryGetValue(player.UserId, out var joinTime))
+            {
+                var playTimeSpan = DateTime.Now - joinTime;
+                player.AddDuration("TotalPlayTime", playTimeSpan);
+                EventHandler.PlayerJoinTimes[player.UserId] = DateTime.Now;
+            }
         }
 
-        var statLines = new List<string> { $"{player.Nickname}'s Stats:\nBasic stats:" };
+        var statLines = new List<string> { $"{player?.Nickname ?? arguments.At(0)}'s Stats:\nBasic stats:" };
 
         statLines.AddRange(stats.Counters.OrderBy(k => k.Key).Select(kvp => $"- {kvp.Key}: {kvp.Value}"));
         statLines.AddRange(stats.Durations.OrderBy(k => k.Key).Select(kvp => $"- {kvp.Key}: {FormatTime(kvp.Value)}"));
