@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CommandSystem;
+using CommandSystem.Commands.RemoteAdmin;
 using LabApi.Features.Wrappers;
 using StatsSystem.Extensions;
 using EventHandler = StatsSystem.Events.EventHandler;
@@ -9,13 +10,14 @@ using EventHandler = StatsSystem.Events.EventHandler;
 namespace StatsSystem.Commands;
 
 [CommandHandler(typeof(ClientCommandHandler))]
+[CommandHandler(typeof(RemoteAdminCommandHandler))]
 public class GetStat : ICommand
 {
     public string Command => "getstat";
 
     public string[] Aliases { get; } = ["gs"];
 
-    public string Description => "Prints your stats.";
+    public string Description => "Prints a player's statistics.";
 
     public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
     {
@@ -26,7 +28,19 @@ public class GetStat : ICommand
         }
 
         var player = Player.Get(sender);
-
+        
+        if (arguments.Count > 0)
+        {
+            var arg = arguments.At(0);
+            var targetPlayer = Player.Get(arg) ?? Player.GetByDisplayName(arg) ?? Player.GetByNickname(arg);
+            if (targetPlayer == null)
+            {
+                response = $"Target player '{arg}' not found.";
+                return false;
+            }
+            player = targetPlayer;
+        }
+        
         if (player == null)
         {
             response = "Player not found.";
@@ -36,7 +50,7 @@ public class GetStat : ICommand
         var stats = player.GetOrCreatePlayerStats();
         if (stats == null)
         {
-            response = "Your stats could not be found or created.";
+            response = "The player's stats could not be found or created.";
             return false;
         }
 
@@ -47,7 +61,7 @@ public class GetStat : ICommand
             EventHandler.PlayerJoinTimes[player.UserId] = DateTime.Now;
         }
 
-        var statLines = new List<string> { "Basic stats:" };
+        var statLines = new List<string> { $"{player.Nickname}'s Stats:\nBasic stats:" };
 
         statLines.AddRange(stats.Counters.OrderBy(k => k.Key).Select(kvp => $"- {kvp.Key}: {kvp.Value}"));
         statLines.AddRange(stats.Durations.OrderBy(k => k.Key).Select(kvp => $"- {kvp.Key}: {FormatTime(kvp.Value)}"));
