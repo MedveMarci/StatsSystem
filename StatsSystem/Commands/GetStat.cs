@@ -6,6 +6,7 @@ using CommandSystem.Commands.RemoteAdmin;
 using LabApi.Features.Wrappers;
 using StatsSystem.API;
 using StatsSystem.Extensions;
+using StatsSystem.Managers;
 using EventHandler = StatsSystem.Events.EventHandler;
 
 namespace StatsSystem.Commands;
@@ -55,14 +56,15 @@ public class GetStat : ICommand
             response = "The player's stats could not be found or created.";
             return false;
         }
+        var playerId = player?.UserId ?? arguments.At(0);
 
-        if (player != null && StatsSystemPlugin.Singleton.Config.PlaytimeTracking)
+        if (StatsSystemPlugin.Singleton.Config.PlaytimeTracking)
         {
-            if (EventHandler.PlayerJoinTimes.TryGetValue(player.UserId, out var joinTime))
+            if (EventHandler.PlayerJoinTimes.TryGetValue(playerId, out var joinTime))
             {
                 var playTimeSpan = DateTime.Now - joinTime;
                 player.AddDuration("TotalPlayTime", playTimeSpan);
-                EventHandler.PlayerJoinTimes[player.UserId] = DateTime.Now;
+                EventHandler.PlayerJoinTimes[playerId] = DateTime.Now;
             }
         }
 
@@ -83,10 +85,10 @@ public class GetStat : ICommand
                     var header = $"Last {d} Days:";
                     statLines.Add(header);
                     statLines.AddRange(from kvp in stats.Counters.OrderBy(k => k.Key)
-                        let val = player.GetLastDaysCounter(kvp.Key, d)
+                        let val = playerId.GetLastDaysCounter(kvp.Key, d)
                         select $"  - {kvp.Key}: {val}");
                     statLines.AddRange(from kvp in stats.Durations.OrderBy(k => k.Key)
-                        let val = player.GetLastDaysDuration(kvp.Key, d)
+                        let val = playerId.GetLastDaysDuration(kvp.Key, d)
                         where val > TimeSpan.Zero
                         select $"  * {kvp.Key}: {FormatTime(val)}");
                     statLines.Add("");

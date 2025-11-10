@@ -193,7 +193,7 @@ internal class StatsSystem
     {
         if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentNullException(nameof(userId));
         var player = Player.Get(userId);
-        return GetOrCreatePlayerStats(player);
+        return player == null ? _playerStats.GetOrAdd(userId, new PlayerStats()) : GetOrCreatePlayerStats(player);
     }
 
     internal void ModifyPlayerCounter(Player player, string key, long amount)
