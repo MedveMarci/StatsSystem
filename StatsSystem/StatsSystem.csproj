@@ -36,9 +36,6 @@
         <PackageReference Include="System.Text.Json">
             <Version>9.0.8</Version>
         </PackageReference>
-        <Reference Include="Mirror">
-            <HintPath>$(sl_references)\Mirror.dll</HintPath>
-        </Reference>
         <Reference Include="mscorlib"/>
         <Reference Include="System"/>
         <Reference Include="System.Core"/>
@@ -46,6 +43,7 @@
         <Reference Include="System.Numerics"/>
         <Reference Include="System.Xml"/>
         <Reference Include="Assembly-CSharp-Publicized" HintPath="$(sl_references)\Assembly-CSharp-Publicized.dll"/>
+        <Reference Include="Mirror" HintPath="$(sl_references)\Mirror.dll"/>
         <Reference Include="CommandSystem.Core" HintPath="$(sl_references)\CommandSystem.Core.dll"/>
         <Reference Include="UnityEngine.CoreModule" HintPath="$(sl_references)\UnityEngine.CoreModule.dll"/>
         <Reference Include="LabApi" HintPath="$(sl_references)\LabApi.dll"/>
