@@ -116,7 +116,7 @@ internal class EventHandler : CustomEventsHandler
         try
         {
             var currentVersion = StatsSystemPlugin.Singleton.Version; // snapshot
-            _ = Task.Run(() => StatsSystemPlugin.CheckForUpdatesAsync(currentVersion));
+            _ = Task.Run(() => VersionManager.CheckForUpdatesAsync(currentVersion));
         }
         catch (Exception ex)
         {
