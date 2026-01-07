@@ -175,83 +175,111 @@ internal class StatsSystem
 
     internal bool TryGetPlayerStats(Player player, out PlayerStats stats)
     {
-        return _playerStats.TryGetValue(player.UserId, out stats);
+        if (player is { DoNotTrack: false }) return _playerStats.TryGetValue(player.UserId, out stats);
+        stats = null;
+        return false;
+
     }
 
     internal bool TryGetPlayerStats(string userId, out PlayerStats stats)
     {
-        if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentNullException(nameof(userId));
-        return _playerStats.TryGetValue(userId, out stats);
+        if (!string.IsNullOrWhiteSpace(userId)) return _playerStats.TryGetValue(userId, out stats);
+        stats = null;
+        return false;
+
     }
 
-    internal PlayerStats GetOrCreatePlayerStats(Player player)
+    internal bool TryGetOrCreatePlayerStats(Player player, out PlayerStats stats)
     {
-        return player.DoNotTrack ? null : _playerStats.GetOrAdd(player.UserId, new PlayerStats());
+        stats = null;
+        if (player == null) return false;
+        if (player.DoNotTrack) return false;
+
+        stats = _playerStats.GetOrAdd(player.UserId, _ => new PlayerStats());
+        return true;
     }
 
-    internal PlayerStats GetOrCreatePlayerStats(string userId)
+    internal bool TryGetOrCreatePlayerStats(string userId, out PlayerStats stats)
     {
-        if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentNullException(nameof(userId));
+        stats = null;
+        if (string.IsNullOrWhiteSpace(userId)) return false;
+
         var player = Player.Get(userId);
-        return player == null ? _playerStats.GetOrAdd(userId, new PlayerStats()) : GetOrCreatePlayerStats(player);
+        if (player != null)
+            return TryGetOrCreatePlayerStats(player, out stats);
+
+        stats = _playerStats.GetOrAdd(userId, _ => new PlayerStats());
+        return true;
     }
 
     internal void ModifyPlayerCounter(Player player, string key, long amount)
     {
-        GetOrCreatePlayerStats(player).IncrementCounter(key, amount);
+        if (!TryGetOrCreatePlayerStats(player, out var stats)) return;
+        stats.IncrementCounter(key, amount);
     }
 
     internal void ModifyPlayerCounter(string userId, string key, long amount)
     {
-        GetOrCreatePlayerStats(userId).IncrementCounter(key, amount);
+        if (!TryGetOrCreatePlayerStats(userId, out var stats)) return;
+        stats.IncrementCounter(key, amount);
     }
 
     internal void SetPlayerCounter(Player player, string key, long value)
     {
-        GetOrCreatePlayerStats(player).SetCounter(key, value);
+        if (!TryGetOrCreatePlayerStats(player, out var stats)) return;
+        stats.SetCounter(key, value);
     }
 
     internal void SetPlayerCounter(string userId, string key, long value)
     {
-        GetOrCreatePlayerStats(userId).SetCounter(key, value);
+        if (!TryGetOrCreatePlayerStats(userId, out var stats)) return;
+        stats.SetCounter(key, value);
     }
 
     internal long GetPlayerCounter(Player player, string key)
     {
-        return GetOrCreatePlayerStats(player).GetCounter(key);
+        return TryGetOrCreatePlayerStats(player, out var stats) ? stats.GetCounter(key) : 0L;
     }
 
     internal long GetPlayerCounter(string userId, string key)
     {
-        return GetOrCreatePlayerStats(userId).GetCounter(key);
+        return TryGetOrCreatePlayerStats(userId, out var stats) ? stats.GetCounter(key) : 0L;
     }
 
     internal long GetPlayerLastDaysCounter(Player player, string key, int days)
     {
+        if (!TryGetOrCreatePlayerStats(player, out var stats)) return 0L;
+
         return days == 7
-            ? GetOrCreatePlayerStats(player).SumCurrentWeek(key)
-            : GetOrCreatePlayerStats(player).SumLastDays(key, days);
+            ? stats.SumCurrentWeek(key)
+            : stats.SumLastDays(key, days);
     }
 
     internal long GetPlayerLastDaysCounter(string userId, string key, int days)
     {
+        if (!TryGetOrCreatePlayerStats(userId, out var stats)) return 0L;
+
         return days == 7
-            ? GetOrCreatePlayerStats(userId).SumCurrentWeek(key)
-            : GetOrCreatePlayerStats(userId).SumLastDays(key, days);
+            ? stats.SumCurrentWeek(key)
+            : stats.SumLastDays(key, days);
     }
 
     internal TimeSpan GetPlayerLastDaysDuration(Player player, string key, int days)
     {
+        if (!TryGetOrCreatePlayerStats(player, out var stats)) return TimeSpan.Zero;
+
         return days == 7
-            ? GetOrCreatePlayerStats(player).SumCurrentWeekDuration(key)
-            : GetOrCreatePlayerStats(player).SumLastDaysDuration(key, days);
+            ? stats.SumCurrentWeekDuration(key)
+            : stats.SumLastDaysDuration(key, days);
     }
 
     internal TimeSpan GetPlayerLastDaysDuration(string userId, string key, int days)
     {
+        if (!TryGetOrCreatePlayerStats(userId, out var stats)) return TimeSpan.Zero;
+
         return days == 7
-            ? GetOrCreatePlayerStats(userId).SumCurrentWeekDuration(key)
-            : GetOrCreatePlayerStats(userId).SumLastDaysDuration(key, days);
+            ? stats.SumCurrentWeekDuration(key)
+            : stats.SumLastDaysDuration(key, days);
     }
 
     internal Dictionary<int, long> GetPlayerConfiguredLastDaysCounters(Player player, string key,
@@ -272,32 +300,36 @@ internal class StatsSystem
 
     internal void AddPlayerDuration(Player player, string key, TimeSpan delta)
     {
-        GetOrCreatePlayerStats(player).AddDuration(key, delta);
+        if (!TryGetOrCreatePlayerStats(player, out var stats)) return;
+        stats.AddDuration(key, delta);
     }
 
     internal void AddPlayerDuration(string userId, string key, TimeSpan delta)
     {
-        GetOrCreatePlayerStats(userId).AddDuration(key, delta);
+        if (!TryGetOrCreatePlayerStats(userId, out var stats)) return;
+        stats.AddDuration(key, delta);
     }
 
     internal void SetPlayerDuration(Player player, string key, TimeSpan value)
     {
-        GetOrCreatePlayerStats(player).SetDuration(key, value);
+        if (!TryGetOrCreatePlayerStats(player, out var stats)) return;
+        stats.SetDuration(key, value);
     }
 
     internal void SetPlayerDuration(string userId, string key, TimeSpan value)
     {
-        GetOrCreatePlayerStats(userId).SetDuration(key, value);
+        if (!TryGetOrCreatePlayerStats(userId, out var stats)) return;
+        stats.SetDuration(key, value);
     }
 
     internal TimeSpan GetPlayerDuration(Player player, string key)
     {
-        return GetOrCreatePlayerStats(player).GetDuration(key);
+        return TryGetOrCreatePlayerStats(player, out var stats) ? stats.GetDuration(key) : TimeSpan.Zero;
     }
 
     internal TimeSpan GetPlayerDuration(string userId, string key)
     {
-        return GetOrCreatePlayerStats(userId).GetDuration(key);
+        return TryGetOrCreatePlayerStats(userId, out var stats) ? stats.GetDuration(key) : TimeSpan.Zero;
     }
 
 
@@ -353,9 +385,9 @@ internal class StatsSystem
             };
 
             var dict = JsonSerializer.Deserialize<Dictionary<string, PlayerStats>>(json, options);
-            if (dict != null)
-                foreach (var kv in dict)
-                    _playerStats[kv.Key] = kv.Value;
+            if (dict == null) return;
+            foreach (var kv in dict)
+                _playerStats[kv.Key] = kv.Value;
         }
         catch (Exception ex)
         {

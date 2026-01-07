@@ -2,11 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using CommandSystem;
-using CommandSystem.Commands.RemoteAdmin;
 using LabApi.Features.Wrappers;
 using StatsSystem.API;
 using StatsSystem.Extensions;
-using StatsSystem.Managers;
 using EventHandler = StatsSystem.Events.EventHandler;
 
 namespace StatsSystem.Commands;
@@ -40,7 +38,7 @@ public class GetStat : ICommand
             if (targetPlayer != null)
             {
                 player = targetPlayer;
-                stats = player.GetOrCreatePlayerStats();
+                player.TryGetOrCreatePlayerStats(out stats);
             }
             else if (StatsSystemPlugin.StatsSystem.TryGetPlayerStats(arg, out var offlineStats))
             {
@@ -49,7 +47,7 @@ public class GetStat : ICommand
         }
 
         if (stats == null && player != null)
-            stats = player.GetOrCreatePlayerStats();
+            player.TryGetOrCreatePlayerStats(out stats);
 
         if (stats == null)
         {
@@ -58,7 +56,7 @@ public class GetStat : ICommand
         }
         var playerId = player?.UserId ?? arguments.At(0);
 
-        if (StatsSystemPlugin.Singleton.Config.PlaytimeTracking)
+        if (StatsSystemPlugin.Singleton.Config?.PlaytimeTracking == true)
         {
             if (EventHandler.PlayerJoinTimes.TryGetValue(playerId, out var joinTime))
             {
