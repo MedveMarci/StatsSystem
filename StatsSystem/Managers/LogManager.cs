@@ -5,7 +5,7 @@ namespace StatsSystem.Managers;
 
 internal abstract class LogManager
 {
-    private static bool DebugEnabled => StatsSystemPlugin.Singleton.Config.Debug;
+    private static bool DebugEnabled => StatsSystemPlugin.Singleton.Config?.Debug ?? false;
 
     public static void Debug(string message)
     {
