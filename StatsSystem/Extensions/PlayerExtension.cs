@@ -30,13 +30,37 @@ public static class PlayerExtension
     }
 
     /// <summary>
+    ///     Tries to get the stats container for the specified player, creating one if missing.
+    /// </summary>
+    /// <param name="player">Player to query.</param>
+    /// <param name="stats">The player's stats if found or created.</param>
+    /// <returns>True if stats existed or were created; otherwise false.</returns>
+    public static bool TryGetOrCreatePlayerStats(this Player player, out PlayerStats stats)
+    {
+        return StatsSystemPlugin.StatsSystem.TryGetOrCreatePlayerStats(player, out stats);
+    }
+
+    /// <summary>
+    ///     Tries to get the stats container for the specified userId, creating one if missing.
+    /// </summary>
+    /// <param name="userId">User identifier string.</param>
+    /// <param name="stats">The player's stats if found or created.</param>
+    /// <returns>True if stats existed or were created; otherwise false.</returns>
+    public static bool TryGetOrCreatePlayerStats(this string userId, out PlayerStats stats)
+    {
+        return StatsSystemPlugin.StatsSystem.TryGetOrCreatePlayerStats(userId, out stats);
+    }
+
+    /// <summary>
     ///     Gets the stats container for the player, creating one if missing.
     /// </summary>
     /// <param name="player">Player to query.</param>
     /// <returns>The player's <see cref="PlayerStats" /> instance.</returns>
+    [Obsolete("Use TryGetOrCreatePlayerStats(out PlayerStats) instead.")]
     public static PlayerStats GetOrCreatePlayerStats(this Player player)
     {
-        return StatsSystemPlugin.StatsSystem.GetOrCreatePlayerStats(player);
+        player.TryGetOrCreatePlayerStats(out var stats);
+        return stats;
     }
 
     /// <summary>
@@ -44,9 +68,11 @@ public static class PlayerExtension
     /// </summary>
     /// <param name="userId">User identifier string.</param>
     /// <returns>The player's <see cref="PlayerStats" /> instance.</returns>
+    [Obsolete("Use TryGetOrCreatePlayerStats(out PlayerStats) instead.")]
     public static PlayerStats GetOrCreatePlayerStats(this string userId)
     {
-        return StatsSystemPlugin.StatsSystem.GetOrCreatePlayerStats(userId);
+        userId.TryGetOrCreatePlayerStats(out var stats);
+        return stats;
     }
 
     /// <summary>
@@ -305,38 +331,48 @@ public static class PlayerExtension
     /// <returns>Read-only dictionary mapping UserId to PlayerStats.</returns>
     public static IReadOnlyDictionary<string, PlayerStats> GetAllPlayerStats()
     {
-        return StatsSystemPlugin.StatsSystem.GetAllPlayerStatsSnapshot();
+        return StatsSystemPlugin.StatsSystem?.GetAllPlayerStatsSnapshot() ?? new Dictionary<string, PlayerStats>();
     }
 
     public static long GetLastDaysCounter(this Player player, string key, int days)
     {
-        return StatsSystemPlugin.StatsSystem.GetPlayerLastDaysCounter(player, key, days);
+        return player == null ? 0L : StatsSystemPlugin.StatsSystem.GetPlayerLastDaysCounter(player, key, days);
     }
 
     public static long GetLastDaysCounter(this string userId, string key, int days)
     {
-        return StatsSystemPlugin.StatsSystem.GetPlayerLastDaysCounter(userId, key, days);
+        return string.IsNullOrWhiteSpace(userId)
+            ? 0L
+            : StatsSystemPlugin.StatsSystem.GetPlayerLastDaysCounter(userId, key, days);
     }
 
     public static TimeSpan GetLastDaysDuration(this Player player, string key, int days)
     {
-        return StatsSystemPlugin.StatsSystem.GetPlayerLastDaysDuration(player, key, days);
+        return player == null
+            ? TimeSpan.Zero
+            : StatsSystemPlugin.StatsSystem.GetPlayerLastDaysDuration(player, key, days);
     }
 
     public static TimeSpan GetLastDaysDuration(this string userId, string key, int days)
     {
-        return StatsSystemPlugin.StatsSystem.GetPlayerLastDaysDuration(userId, key, days);
+        return string.IsNullOrWhiteSpace(userId)
+            ? TimeSpan.Zero
+            : StatsSystemPlugin.StatsSystem.GetPlayerLastDaysDuration(userId, key, days);
     }
 
     public static Dictionary<int, long> GetConfiguredLastDaysCounters(this Player player, string key)
     {
-        var cfg = StatsSystemPlugin.Singleton.Config;
-        return StatsSystemPlugin.StatsSystem.GetPlayerConfiguredLastDaysCounters(player, key, cfg.LastDays);
+        var cfg = StatsSystemPlugin.Singleton?.Config;
+        return cfg?.LastDays is { Count: > 0 }
+            ? StatsSystemPlugin.StatsSystem.GetPlayerConfiguredLastDaysCounters(player, key, cfg.LastDays)
+            : new Dictionary<int, long>();
     }
 
     public static Dictionary<int, long> GetConfiguredLastDaysCounters(this string userId, string key)
     {
-        var cfg = StatsSystemPlugin.Singleton.Config;
-        return StatsSystemPlugin.StatsSystem.GetPlayerConfiguredLastDaysCounters(userId, key, cfg.LastDays);
+        var cfg = StatsSystemPlugin.Singleton?.Config;
+        return cfg?.LastDays is { Count: > 0 }
+            ? StatsSystemPlugin.StatsSystem.GetPlayerConfiguredLastDaysCounters(userId, key, cfg.LastDays)
+            : new Dictionary<int, long>();
     }
 }
