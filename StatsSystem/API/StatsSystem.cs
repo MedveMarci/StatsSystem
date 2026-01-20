@@ -6,8 +6,8 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using LabApi.Features.Wrappers;
+using StatsSystem.ApiFeatures;
 using StatsSystem.Extensions;
-using StatsSystem.Managers;
 
 namespace StatsSystem.API;
 
@@ -178,7 +178,6 @@ internal class StatsSystem
         if (player is { DoNotTrack: false }) return _playerStats.TryGetValue(player.UserId, out stats);
         stats = null;
         return false;
-
     }
 
     internal bool TryGetPlayerStats(string userId, out PlayerStats stats)
@@ -186,7 +185,6 @@ internal class StatsSystem
         if (!string.IsNullOrWhiteSpace(userId)) return _playerStats.TryGetValue(userId, out stats);
         stats = null;
         return false;
-
     }
 
     internal bool TryGetOrCreatePlayerStats(Player player, out PlayerStats stats)

@@ -31,7 +31,7 @@ public class GetLeaderboard : ICommand
             response = "You must be a player to use this command.";
             return false;
         }
-        
+
         if (arguments.Count <= 0)
         {
             response = "Usage: gl <statKey> [top] | gl <statKey> last <days> [top]";
@@ -57,16 +57,13 @@ public class GetLeaderboard : ICommand
         }
 
         if (arguments.Count > idx)
-        {
             if (!int.TryParse(arguments.At(idx), out top) || top <= 0)
             {
                 response = "Top must be a positive integer. Example: gl Kills 10";
                 return false;
             }
-        }
 
         if (StatsSystemPlugin.Singleton.Config?.PlaytimeTracking == true)
-        {
             foreach (var kvp in EventHandler.PlayerJoinTimes.ToArray())
             {
                 var userId = kvp.Key;
@@ -79,7 +76,6 @@ public class GetLeaderboard : ICommand
                 player.AddDuration("TotalPlayTime", playTimeSpan);
                 EventHandler.PlayerJoinTimes[userId] = DateTime.Now;
             }
-        }
 
         var snapshot = StatsSystemPlugin.StatsSystem.GetAllPlayerStatsSnapshot();
         if (snapshot.Count == 0)
@@ -106,7 +102,9 @@ public class GetLeaderboard : ICommand
 
                 const int maxToShow = 80;
                 var shown = available.Take(maxToShow).ToList();
-                var suffix = available.Count > maxToShow ? $"\n...and {available.Count - maxToShow} more" : string.Empty;
+                var suffix = available.Count > maxToShow
+                    ? $"\n...and {available.Count - maxToShow} more"
+                    : string.Empty;
 
                 response = available.Count == 0
                     ? $"Unknown stat '{statKey}'. (No stats are tracked yet.)"
@@ -122,7 +120,9 @@ public class GetLeaderboard : ICommand
                     var stats = kvp.Value;
                     if (stats == null) continue;
 
-                    var value = lastDays.HasValue ? StatsSystemPlugin.StatsSystem.GetPlayerLastDaysDuration(userId, statKey, lastDays.Value) : stats.GetDuration(statKey);
+                    var value = lastDays.HasValue
+                        ? StatsSystemPlugin.StatsSystem.GetPlayerLastDaysDuration(userId, statKey, lastDays.Value)
+                        : stats.GetDuration(statKey);
 
                     if (value <= TimeSpan.Zero) continue;
                     rows.Add((userId, value));
@@ -163,7 +163,9 @@ public class GetLeaderboard : ICommand
                     if (stats == null) continue;
 
                     long value;
-                    value = lastDays.HasValue ? StatsSystemPlugin.StatsSystem.GetPlayerLastDaysCounter(userId, statKey, lastDays.Value) : stats.GetCounter(statKey);
+                    value = lastDays.HasValue
+                        ? StatsSystemPlugin.StatsSystem.GetPlayerLastDaysCounter(userId, statKey, lastDays.Value)
+                        : stats.GetCounter(statKey);
 
                     if (value <= 0) continue;
                     rows.Add((userId, value));

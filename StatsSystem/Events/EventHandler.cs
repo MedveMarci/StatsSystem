@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Threading.Tasks;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.Arguments.ServerEvents;
 using LabApi.Events.CustomHandlers;
@@ -8,8 +7,8 @@ using LabApi.Features.Extensions;
 using LabApi.Features.Wrappers;
 using PlayerRoles;
 using PlayerStatsSystem;
+using StatsSystem.ApiFeatures;
 using StatsSystem.Extensions;
-using StatsSystem.Managers;
 
 namespace StatsSystem.Events;
 
@@ -94,19 +93,22 @@ internal class EventHandler : CustomEventsHandler
     public override void OnPlayerDeath(PlayerDeathEventArgs ev)
     {
         if (!Round.IsRoundStarted) return;
-        if (ev.Player.DoNotTrack) return;
         LogManager.Debug($"Player {ev.Player.UserId} died. Attacker: {ev.Attacker?.UserId ?? "None"}");
-        if (StatsSystemPlugin.Singleton.Config.KillsTracking && ev.Attacker != null)
+        if (StatsSystemPlugin.Singleton.Config.KillsTracking && ev.Attacker is { DoNotTrack: false })
             ev.Attacker.IncrementStat("Kills");
-        if (StatsSystemPlugin.Singleton.Config.DeathsTracking)
+        if (StatsSystemPlugin.Singleton.Config.DeathsTracking && ev.Player is { DoNotTrack: false })
             ev.Player.IncrementStat("Deaths");
-        if (ev.OldRole is RoleTypeId.ClassD && StatsSystemPlugin.Singleton.Config.ClassDKillsTracking && ev.Attacker != null)
+        if (ev.OldRole is RoleTypeId.ClassD && StatsSystemPlugin.Singleton.Config.ClassDKillsTracking &&
+            ev.Attacker is { DoNotTrack: false })
             ev.Attacker.IncrementStat("ClassDKills");
-        if (ev.Attacker is { Role: RoleTypeId.ClassD } && StatsSystemPlugin.Singleton.Config.KillsAsClassDTracking)
+        if (ev.Attacker is { Role: RoleTypeId.ClassD } && StatsSystemPlugin.Singleton.Config.KillsAsClassDTracking &&
+            ev.Attacker is { DoNotTrack: false })
             ev.Attacker.IncrementStat("KillsAsClassD");
-        if (ev.OldRole.IsScp() && StatsSystemPlugin.Singleton.Config.ScpKillsTracking && ev.Attacker != null)
+        if (ev.OldRole.IsScp() && StatsSystemPlugin.Singleton.Config.ScpKillsTracking &&
+            ev.Attacker is { DoNotTrack: false })
             ev.Attacker.IncrementStat("ScpKills");
-        if (ev.DamageHandler is MicroHidDamageHandler && StatsSystemPlugin.Singleton.Config.MicroHidKillsTracking && ev.Attacker != null)
+        if (ev.DamageHandler is MicroHidDamageHandler && StatsSystemPlugin.Singleton.Config.MicroHidKillsTracking &&
+            ev.Attacker is { DoNotTrack: false })
             ev.Attacker.IncrementStat("MicroHidKills");
         base.OnPlayerDeath(ev);
     }
@@ -115,8 +117,7 @@ internal class EventHandler : CustomEventsHandler
     {
         try
         {
-            var currentVersion = StatsSystemPlugin.Singleton.Version; // snapshot
-            _ = Task.Run(() => VersionManager.CheckForUpdatesAsync(currentVersion));
+            ApiManager.CheckForUpdates();
         }
         catch (Exception ex)
         {

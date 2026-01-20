@@ -10,6 +10,7 @@ A SCP: Secret Laboratory LabApi plugin and API to manage different statistics fo
 - The Player's Statistics are saved in ``SCP Secret Laboratory\LabAPI\configs\StatsSystem\player_stats.json``.
 
 # For Support
+
 <div align="left">
 <a href='https://discord.gg/KmpA8cfaSA'><img src='https://www.allkpop.com/upload/2021/01/content/262046/1611711962-discord-button.png' height="100"></a>
 </div>

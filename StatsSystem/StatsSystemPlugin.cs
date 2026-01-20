@@ -5,7 +5,7 @@ using LabApi.Events.CustomHandlers;
 using LabApi.Features;
 using LabApi.Loader.Features.Paths;
 using LabApi.Loader.Features.Plugins;
-using StatsSystem.Managers;
+using StatsSystem.ApiFeatures;
 using EventHandler = StatsSystem.Events.EventHandler;
 using Version = System.Version;
 
@@ -18,13 +18,13 @@ internal class StatsSystemPlugin : Plugin<Config>
     private static EventHandler _eventHandler;
     private static string _saveFilePath;
     private static string _saveFileDirectory;
+    public string githubRepo = "MedveMarci/StatsSystem";
     public override string Name => "StatsSystem";
     public override string Description => "StatSystem";
     public override string Author => "MedveMarci";
     public override Version Version { get; } = new(1, 2, 0);
     public override Version RequiredApiVersion => new(LabApiProperties.CompiledVersion);
     public override bool IsTransparent => true;
-    public string githubRepo = "MedveMarci/StatsSystem";
 
     public override void Enable()
     {

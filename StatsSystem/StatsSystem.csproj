@@ -29,7 +29,7 @@
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
         <DebugSymbols>false</DebugSymbols>
-        <DebugType>embedded</DebugType>
+        <DebugType>pdbonly</DebugType>
         <Optimize>true</Optimize>
         <DefineConstants>TRACE</DefineConstants>
         <ErrorReport>prompt</ErrorReport>
@@ -41,12 +41,6 @@
         <NoWarn>1591</NoWarn>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="System.Net.Http">
-            <Version>4.3.4</Version>
-        </PackageReference>
-        <PackageReference Include="System.Text.Json">
-            <Version>10.0.1</Version>
-        </PackageReference>
         <Reference Include="mscorlib"/>
         <Reference Include="System"/>
         <Reference Include="System.Core"/>
@@ -58,19 +52,30 @@
         <Reference Include="CommandSystem.Core" HintPath="$(sl_references)\CommandSystem.Core.dll"/>
         <Reference Include="UnityEngine.CoreModule" HintPath="$(sl_references)\UnityEngine.CoreModule.dll"/>
         <Reference Include="LabApi" HintPath="$(sl_references)\LabApi.dll"/>
+        <Reference Include="NorthwoodLib" HintPath="$(SL_REFERENCES)\NorthwoodLib.dll"/>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="ApiFeatures\ApiManager.cs"/>
+        <Compile Include="ApiFeatures\BearmanLogsCommand.cs"/>
+        <Compile Include="ApiFeatures\LogManager.cs"/>
         <Compile Include="API\StatsSystem.cs"/>
-        <Compile Include="Commands\GetLeaderboard.cs" />
-        <Compile Include="Commands\GetStat.cs" />
+        <Compile Include="Commands\GetLeaderboard.cs"/>
+        <Compile Include="Commands\GetStat.cs"/>
         <Compile Include="Config.cs"/>
         <Compile Include="Events\EventHandler.cs"/>
         <Compile Include="Extensions\JsonExtension.cs"/>
         <Compile Include="Extensions\PlayerExtension.cs"/>
-        <Compile Include="Managers\LogManager.cs"/>
-        <Compile Include="Managers\VersionManager.cs" />
         <Compile Include="StatsSystemPlugin.cs"/>
         <Compile Include="Properties\AssemblyInfo.cs"/>
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="System.Net.Http" Version="4.3.4"/>
+        <PackageReference Include="System.Text.Json" Version="10.0.2"/>
+        <PackageReference Include="YamlDotNet" Version="11.0.1"/>
+    </ItemGroup>
+    <ItemGroup>
+        <Content Include="../LICENSE" Link="LICENSE"/>
+        <Content Include="../README.md" Link="README.md"/>
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
     <Target Name="AfterBuild">

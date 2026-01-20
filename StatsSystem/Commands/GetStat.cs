@@ -54,17 +54,16 @@ public class GetStat : ICommand
             response = "The player's stats could not be found or created.";
             return false;
         }
+
         var playerId = player?.UserId ?? arguments.At(0);
 
         if (StatsSystemPlugin.Singleton.Config?.PlaytimeTracking == true)
-        {
             if (EventHandler.PlayerJoinTimes.TryGetValue(playerId, out var joinTime))
             {
                 var playTimeSpan = DateTime.Now - joinTime;
                 player.AddDuration("TotalPlayTime", playTimeSpan);
                 EventHandler.PlayerJoinTimes[playerId] = DateTime.Now;
             }
-        }
 
         var statLines = new List<string> { $"{player?.Nickname ?? arguments.At(0)}'s Stats:\nBasic stats:" };
 
