@@ -38,4 +38,7 @@ internal class Config
     [Description(
         "You can set here the days for which the 'last days' statistics will be tracked. For example, if you set this to [7, 30], the plugin will track statistics for the last 7 days and the last 30 days.")]
     public List<int> LastDays { get; set; } = [7, 30, 90];
+
+    [Description("The folder (relative to the plugin base path) where stats files are saved. Leave empty to save next to the plugin.")]
+    public string StatsDataFolder { get; set; } = "StatsSystem";
 }

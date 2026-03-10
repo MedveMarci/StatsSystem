@@ -18,15 +18,9 @@ public class PlayerStats
     public ConcurrentDictionary<string, ConcurrentDictionary<string, long>> DailyCounters { get; set; } = new();
     public ConcurrentDictionary<string, ConcurrentDictionary<string, TimeSpan>> DailyDurations { get; set; } = new();
 
-    public long GetCounter(string key)
-    {
-        return Counters.TryGetValue(key, out var v) ? v : 0L;
-    }
+    public long GetCounter(string key) => Counters.TryGetValue(key, out var v) ? v : 0L;
 
-    public void SetCounter(string key, long value)
-    {
-        Counters[key] = value;
-    }
+    public void SetCounter(string key, long value) => Counters[key] = value;
 
     public void IncrementCounter(string key, long amount = 1)
     {
@@ -34,15 +28,9 @@ public class PlayerStats
         IncrementDailyCounter(key, amount);
     }
 
-    public TimeSpan GetDuration(string key)
-    {
-        return Durations.TryGetValue(key, out var v) ? v : TimeSpan.Zero;
-    }
+    public TimeSpan GetDuration(string key) => Durations.TryGetValue(key, out var v) ? v : TimeSpan.Zero;
 
-    public void SetDuration(string key, TimeSpan value)
-    {
-        Durations[key] = value;
-    }
+    public void SetDuration(string key, TimeSpan value) => Durations[key] = value;
 
     public void AddDuration(string key, TimeSpan delta)
     {
@@ -66,10 +54,7 @@ public class PlayerStats
                 if (DateTime.TryParse(kv, out var parsed) && parsed < threshold)
                     perDay.TryRemove(kv, out _);
         }
-        catch (Exception e)
-        {
-            LogManager.Error("Failed to increment daily counter: " + e);
-        }
+        catch (Exception e) { LogManager.Error("Failed to increment daily counter: " + e); }
     }
 
     private void AddDailyDuration(string key, TimeSpan delta)
@@ -88,10 +73,7 @@ public class PlayerStats
                 if (DateTime.TryParse(k, out var parsed) && parsed < threshold)
                     perDay.TryRemove(k, out _);
         }
-        catch (Exception e)
-        {
-            LogManager.Error("Failed to add daily duration: " + e);
-        }
+        catch (Exception e) { LogManager.Error("Failed to add daily duration: " + e); }
     }
 
     internal long SumLastDays(string key, int days)
@@ -106,7 +88,6 @@ public class PlayerStats
             if (!DateTime.TryParse(kv.Key, out var d)) continue;
             if (d >= from && d <= today) total += kv.Value;
         }
-
         return total;
     }
 
@@ -115,14 +96,13 @@ public class PlayerStats
         if (days <= 0) throw new ArgumentOutOfRangeException(nameof(days));
         if (!DailyDurations.TryGetValue(key, out var perDay)) return TimeSpan.Zero;
         var today = DateTime.UtcNow.Date;
-        var from = today.AddDays(-(days - 1)); // inclusive window
+        var from = today.AddDays(-(days - 1));
         var total = TimeSpan.Zero;
         foreach (var kv in perDay)
         {
             if (!DateTime.TryParse(kv.Key, out var d)) continue;
             if (d >= from && d <= today) total += kv.Value;
         }
-
         return total;
     }
 
@@ -130,16 +110,13 @@ public class PlayerStats
     {
         if (!DailyCounters.TryGetValue(key, out var perDay)) return 0;
         var today = DateTime.UtcNow.Date;
-        var daysSinceMonday = ((int)today.DayOfWeek + 6) % 7;
-        var weekStart = today.AddDays(-daysSinceMonday);
-        var weekEnd = weekStart.AddDays(7);
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
         long total = 0;
         foreach (var kv in perDay)
         {
             if (!DateTime.TryParse(kv.Key, out var d)) continue;
-            if (d >= weekStart && d < weekEnd) total += kv.Value;
+            if (d >= weekStart && d <= today) total += kv.Value;
         }
-
         return total;
     }
 
@@ -147,261 +124,268 @@ public class PlayerStats
     {
         if (!DailyDurations.TryGetValue(key, out var perDay)) return TimeSpan.Zero;
         var today = DateTime.UtcNow.Date;
-        var daysSinceMonday = ((int)today.DayOfWeek + 6) % 7;
-        var weekStart = today.AddDays(-daysSinceMonday);
-        var weekEnd = weekStart.AddDays(7);
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
         var total = TimeSpan.Zero;
         foreach (var kv in perDay)
         {
             if (!DateTime.TryParse(kv.Key, out var d)) continue;
-            if (d >= weekStart && d < weekEnd) total += kv.Value;
+            if (d >= weekStart && d <= today) total += kv.Value;
         }
-
         return total;
     }
 }
 
 internal class StatsSystem
 {
-    private readonly ConcurrentDictionary<string, PlayerStats> _playerStats;
+    private readonly ConcurrentDictionary<string, PlayerStats> _playerStats = new();
     private readonly string _saveFilePath;
+
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, PlayerStats>> _filePlayerStats = new();
 
     internal StatsSystem(string saveFilePath = "player_stats.json")
     {
-        _playerStats = new ConcurrentDictionary<string, PlayerStats>();
         _saveFilePath = saveFilePath;
-        LoadStats();
+        LoadStatsFromFile(_saveFilePath, _playerStats);
+    }
+
+    private static string NormalizeFileName(string file)
+    {
+        file = file.Trim();
+        if (!file.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            file += ".json";
+        return file;
+    }
+
+    private string ResolveFilePath(string fileName)
+    {
+        var cfg = StatsSystemPlugin.Singleton?.Config;
+        var folder = cfg?.StatsDataFolder ?? string.Empty;
+        return string.IsNullOrWhiteSpace(folder)
+            ? fileName
+            : Path.Combine(folder, fileName);
+    }
+
+    private ConcurrentDictionary<string, PlayerStats> GetStatsDict(string file)
+    {
+        if (string.IsNullOrWhiteSpace(file)) return _playerStats;
+        var normalized = NormalizeFileName(file);
+        return _filePlayerStats.GetOrAdd(normalized, f =>
+        {
+            var dict = new ConcurrentDictionary<string, PlayerStats>();
+            LoadStatsFromFile(ResolveFilePath(f), dict);
+            return dict;
+        });
     }
 
     internal bool TryGetPlayerStats(Player player, out PlayerStats stats)
-    {
-        if (player is { DoNotTrack: false }) return _playerStats.TryGetValue(player.UserId, out stats);
-        stats = null;
-        return false;
-    }
+        => TryGetPlayerStatsCore(player, out stats, null);
 
     internal bool TryGetPlayerStats(string userId, out PlayerStats stats)
+        => TryGetPlayerStatsCore(userId, out stats, null);
+
+    internal bool TryGetOrCreatePlayerStats(Player player, out PlayerStats stats)
+        => TryGetOrCreatePlayerStatsCore(player, out stats, null);
+
+    internal bool TryGetOrCreatePlayerStats(string userId, out PlayerStats stats)
+        => TryGetOrCreatePlayerStatsCore(userId, out stats, null);
+
+
+    private bool TryGetPlayerStatsCore(Player player, out PlayerStats stats, string file)
     {
-        if (!string.IsNullOrWhiteSpace(userId)) return _playerStats.TryGetValue(userId, out stats);
+        if (player is { DoNotTrack: false })
+            return GetStatsDict(file).TryGetValue(player.UserId, out stats);
         stats = null;
         return false;
     }
 
-    internal bool TryGetOrCreatePlayerStats(Player player, out PlayerStats stats)
+    private bool TryGetPlayerStatsCore(string userId, out PlayerStats stats, string file)
+    {
+        if (!string.IsNullOrWhiteSpace(userId))
+            return GetStatsDict(file).TryGetValue(userId, out stats);
+        stats = null;
+        return false;
+    }
+
+    private bool TryGetOrCreatePlayerStatsCore(Player player, out PlayerStats stats, string file)
     {
         stats = null;
-        if (player == null) return false;
-        if (player.DoNotTrack) return false;
-
-        stats = _playerStats.GetOrAdd(player.UserId, _ => new PlayerStats());
+        if (player == null || player.DoNotTrack) return false;
+        stats = GetStatsDict(file).GetOrAdd(player.UserId, _ => new PlayerStats());
         return true;
     }
 
-    internal bool TryGetOrCreatePlayerStats(string userId, out PlayerStats stats)
+    private bool TryGetOrCreatePlayerStatsCore(string userId, out PlayerStats stats, string file)
     {
         stats = null;
         if (string.IsNullOrWhiteSpace(userId)) return false;
-
         var player = Player.Get(userId);
         if (player != null)
-            return TryGetOrCreatePlayerStats(player, out stats);
-
-        stats = _playerStats.GetOrAdd(userId, _ => new PlayerStats());
+            return TryGetOrCreatePlayerStatsCore(player, out stats, file);
+        stats = GetStatsDict(file).GetOrAdd(userId, _ => new PlayerStats());
         return true;
     }
 
-    internal void ModifyPlayerCounter(Player player, string key, long amount)
+
+    internal void ModifyPlayerCounter(Player player, string key, long amount, string file = null)
     {
-        if (!TryGetOrCreatePlayerStats(player, out var stats)) return;
-        stats.IncrementCounter(key, amount);
+        if (TryGetOrCreatePlayerStatsCore(player, out var stats, file)) stats.IncrementCounter(key, amount);
     }
 
-    internal void ModifyPlayerCounter(string userId, string key, long amount)
+    internal void ModifyPlayerCounter(string userId, string key, long amount, string file = null)
     {
-        if (!TryGetOrCreatePlayerStats(userId, out var stats)) return;
-        stats.IncrementCounter(key, amount);
+        if (TryGetOrCreatePlayerStatsCore(userId, out var stats, file)) stats.IncrementCounter(key, amount);
     }
 
-    internal void SetPlayerCounter(Player player, string key, long value)
+    internal void SetPlayerCounter(Player player, string key, long value, string file = null)
     {
-        if (!TryGetOrCreatePlayerStats(player, out var stats)) return;
-        stats.SetCounter(key, value);
+        if (TryGetOrCreatePlayerStatsCore(player, out var stats, file)) stats.SetCounter(key, value);
     }
 
-    internal void SetPlayerCounter(string userId, string key, long value)
+    internal void SetPlayerCounter(string userId, string key, long value, string file = null)
     {
-        if (!TryGetOrCreatePlayerStats(userId, out var stats)) return;
-        stats.SetCounter(key, value);
+        if (TryGetOrCreatePlayerStatsCore(userId, out var stats, file)) stats.SetCounter(key, value);
     }
 
-    internal long GetPlayerCounter(Player player, string key)
+    internal long GetPlayerCounter(Player player, string key, string file = null)
+        => TryGetOrCreatePlayerStatsCore(player, out var stats, file) ? stats.GetCounter(key) : 0L;
+
+    internal long GetPlayerCounter(string userId, string key, string file = null)
+        => TryGetOrCreatePlayerStatsCore(userId, out var stats, file) ? stats.GetCounter(key) : 0L;
+
+
+    internal void AddPlayerDuration(Player player, string key, TimeSpan delta, string file = null)
     {
-        return TryGetOrCreatePlayerStats(player, out var stats) ? stats.GetCounter(key) : 0L;
+        if (TryGetOrCreatePlayerStatsCore(player, out var stats, file)) stats.AddDuration(key, delta);
     }
 
-    internal long GetPlayerCounter(string userId, string key)
+    internal void AddPlayerDuration(string userId, string key, TimeSpan delta, string file = null)
     {
-        return TryGetOrCreatePlayerStats(userId, out var stats) ? stats.GetCounter(key) : 0L;
+        if (TryGetOrCreatePlayerStatsCore(userId, out var stats, file)) stats.AddDuration(key, delta);
     }
 
-    internal long GetPlayerLastDaysCounter(Player player, string key, int days)
+    internal void SetPlayerDuration(Player player, string key, TimeSpan value, string file = null)
     {
-        if (!TryGetOrCreatePlayerStats(player, out var stats)) return 0L;
-
-        return days == 7
-            ? stats.SumCurrentWeek(key)
-            : stats.SumLastDays(key, days);
+        if (TryGetOrCreatePlayerStatsCore(player, out var stats, file)) stats.SetDuration(key, value);
     }
 
-    internal long GetPlayerLastDaysCounter(string userId, string key, int days)
+    internal void SetPlayerDuration(string userId, string key, TimeSpan value, string file = null)
     {
-        if (!TryGetOrCreatePlayerStats(userId, out var stats)) return 0L;
-
-        return days == 7
-            ? stats.SumCurrentWeek(key)
-            : stats.SumLastDays(key, days);
+        if (TryGetOrCreatePlayerStatsCore(userId, out var stats, file)) stats.SetDuration(key, value);
     }
 
-    internal TimeSpan GetPlayerLastDaysDuration(Player player, string key, int days)
-    {
-        if (!TryGetOrCreatePlayerStats(player, out var stats)) return TimeSpan.Zero;
+    internal TimeSpan GetPlayerDuration(Player player, string key, string file = null)
+        => TryGetOrCreatePlayerStatsCore(player, out var stats, file) ? stats.GetDuration(key) : TimeSpan.Zero;
 
-        return days == 7
-            ? stats.SumCurrentWeekDuration(key)
-            : stats.SumLastDaysDuration(key, days);
+    internal TimeSpan GetPlayerDuration(string userId, string key, string file = null)
+        => TryGetOrCreatePlayerStatsCore(userId, out var stats, file) ? stats.GetDuration(key) : TimeSpan.Zero;
+
+
+    internal long GetPlayerLastDaysCounter(Player player, string key, int days, string file = null)
+    {
+        if (!TryGetOrCreatePlayerStatsCore(player, out var stats, file)) return 0L;
+        return days == 7 ? stats.SumCurrentWeek(key) : stats.SumLastDays(key, days);
     }
 
-    internal TimeSpan GetPlayerLastDaysDuration(string userId, string key, int days)
+    internal long GetPlayerLastDaysCounter(string userId, string key, int days, string file = null)
     {
-        if (!TryGetOrCreatePlayerStats(userId, out var stats)) return TimeSpan.Zero;
+        if (!TryGetOrCreatePlayerStatsCore(userId, out var stats, file)) return 0L;
+        return days == 7 ? stats.SumCurrentWeek(key) : stats.SumLastDays(key, days);
+    }
 
-        return days == 7
-            ? stats.SumCurrentWeekDuration(key)
-            : stats.SumLastDaysDuration(key, days);
+    internal TimeSpan GetPlayerLastDaysDuration(Player player, string key, int days, string file = null)
+    {
+        if (!TryGetOrCreatePlayerStatsCore(player, out var stats, file)) return TimeSpan.Zero;
+        return days == 7 ? stats.SumCurrentWeekDuration(key) : stats.SumLastDaysDuration(key, days);
+    }
+
+    internal TimeSpan GetPlayerLastDaysDuration(string userId, string key, int days, string file = null)
+    {
+        if (!TryGetOrCreatePlayerStatsCore(userId, out var stats, file)) return TimeSpan.Zero;
+        return days == 7 ? stats.SumCurrentWeekDuration(key) : stats.SumLastDaysDuration(key, days);
     }
 
     internal Dictionary<int, long> GetPlayerConfiguredLastDaysCounters(Player player, string key,
-        IEnumerable<int> daysList)
+        IEnumerable<int> daysList, string file = null)
     {
         var dict = new Dictionary<int, long>();
-        foreach (var d in daysList) dict[d] = GetPlayerLastDaysCounter(player, key, d);
+        foreach (var d in daysList) dict[d] = GetPlayerLastDaysCounter(player, key, d, file);
         return dict;
     }
 
     internal Dictionary<int, long> GetPlayerConfiguredLastDaysCounters(string userId, string key,
-        IEnumerable<int> daysList)
+        IEnumerable<int> daysList, string file = null)
     {
         var dict = new Dictionary<int, long>();
-        foreach (var d in daysList) dict[d] = GetPlayerLastDaysCounter(userId, key, d);
+        foreach (var d in daysList) dict[d] = GetPlayerLastDaysCounter(userId, key, d, file);
         return dict;
-    }
-
-    internal void AddPlayerDuration(Player player, string key, TimeSpan delta)
-    {
-        if (!TryGetOrCreatePlayerStats(player, out var stats)) return;
-        stats.AddDuration(key, delta);
-    }
-
-    internal void AddPlayerDuration(string userId, string key, TimeSpan delta)
-    {
-        if (!TryGetOrCreatePlayerStats(userId, out var stats)) return;
-        stats.AddDuration(key, delta);
-    }
-
-    internal void SetPlayerDuration(Player player, string key, TimeSpan value)
-    {
-        if (!TryGetOrCreatePlayerStats(player, out var stats)) return;
-        stats.SetDuration(key, value);
-    }
-
-    internal void SetPlayerDuration(string userId, string key, TimeSpan value)
-    {
-        if (!TryGetOrCreatePlayerStats(userId, out var stats)) return;
-        stats.SetDuration(key, value);
-    }
-
-    internal TimeSpan GetPlayerDuration(Player player, string key)
-    {
-        return TryGetOrCreatePlayerStats(player, out var stats) ? stats.GetDuration(key) : TimeSpan.Zero;
-    }
-
-    internal TimeSpan GetPlayerDuration(string userId, string key)
-    {
-        return TryGetOrCreatePlayerStats(userId, out var stats) ? stats.GetDuration(key) : TimeSpan.Zero;
     }
 
 
     internal void SaveStats()
     {
-        try
-        {
-            var options = new JsonSerializerOptions
-            {
-                Converters = { new TimeSpanConverter() },
-                WriteIndented = true
-            };
-            var json = JsonSerializer.Serialize(_playerStats, options);
-            File.WriteAllText(_saveFilePath, json);
-        }
-        catch (Exception ex)
-        {
-            LogManager.Error($"Error saving stats: {ex}");
-        }
+        SaveStatsToFile(_saveFilePath, _playerStats);
+        foreach (var kv in _filePlayerStats)
+            SaveStatsToFile(ResolveFilePath(kv.Key), kv.Value);
     }
 
     internal async Task SaveStatsAsync()
     {
+        await SaveStatsAsyncToFile(_saveFilePath, _playerStats);
+        foreach (var kv in _filePlayerStats)
+            await SaveStatsAsyncToFile(ResolveFilePath(kv.Key), kv.Value);
+    }
+
+    private static void SaveStatsToFile(string path, ConcurrentDictionary<string, PlayerStats> dict)
+    {
         try
         {
-            var options = new JsonSerializerOptions
-            {
-                Converters = { new TimeSpanConverter() },
-                WriteIndented = true
-            };
-            var json = JsonSerializer.Serialize(_playerStats, options);
-            using var writer = new StreamWriter(_saveFilePath, false);
+            EnsureDirectory(path);
+            var options = new JsonSerializerOptions { Converters = { new TimeSpanConverter() }, WriteIndented = true };
+            File.WriteAllText(path, JsonSerializer.Serialize(dict, options));
+        }
+        catch (Exception ex) { LogManager.Error($"Error saving stats to '{path}': {ex}"); }
+    }
+
+    private static async Task SaveStatsAsyncToFile(string path, ConcurrentDictionary<string, PlayerStats> dict)
+    {
+        try
+        {
+            EnsureDirectory(path);
+            var options = new JsonSerializerOptions { Converters = { new TimeSpanConverter() }, WriteIndented = true };
+            var json = JsonSerializer.Serialize(dict, options);
+            using var writer = new StreamWriter(path, false);
             await writer.WriteAsync(json);
         }
-        catch (Exception ex)
-        {
-            LogManager.Error($"Error saving stats: {ex}");
-        }
+        catch (Exception ex) { LogManager.Error($"Error saving stats to '{path}': {ex}"); }
     }
 
-    private void LoadStats()
+    private static void LoadStatsFromFile(string path, ConcurrentDictionary<string, PlayerStats> dict)
     {
-        LogManager.Debug("Loading player stats...");
+        LogManager.Debug($"Loading player stats from '{path}'...");
         try
         {
-            if (!File.Exists(_saveFilePath)) return;
-            var json = File.ReadAllText(_saveFilePath);
+            if (!File.Exists(path)) return;
+            var json = File.ReadAllText(path);
             if (string.IsNullOrWhiteSpace(json)) return;
-
-            var options = new JsonSerializerOptions
-            {
-                Converters = { new TimeSpanConverter() }
-            };
-
-            var dict = JsonSerializer.Deserialize<Dictionary<string, PlayerStats>>(json, options);
-            if (dict == null) return;
-            foreach (var kv in dict)
-                _playerStats[kv.Key] = kv.Value;
+            var options = new JsonSerializerOptions { Converters = { new TimeSpanConverter() } };
+            var loaded = JsonSerializer.Deserialize<Dictionary<string, PlayerStats>>(json, options);
+            if (loaded == null) return;
+            foreach (var kv in loaded) dict[kv.Key] = kv.Value;
         }
-        catch (Exception ex)
-        {
-            LogManager.Error($"Error loading stats: {ex}");
-        }
+        catch (Exception ex) { LogManager.Error($"Error loading stats from '{path}': {ex}"); }
     }
+
+    private static void EnsureDirectory(string filePath)
+    {
+        var dir = Path.GetDirectoryName(filePath);
+        if (!string.IsNullOrWhiteSpace(dir) && !Directory.Exists(dir))
+            Directory.CreateDirectory(dir);
+    }
+
 
     internal IEnumerable<PlayerStats> GetTopPlayers(int count, Func<PlayerStats, IComparable> selector)
-    {
-        return _playerStats.Values
-            .OrderByDescending(selector)
-            .Take(count);
-    }
+        => _playerStats.Values.OrderByDescending(selector).Take(count);
 
     internal IReadOnlyDictionary<string, PlayerStats> GetAllPlayerStatsSnapshot()
-    {
-        return _playerStats.ToDictionary(kv => kv.Key, kv => kv.Value);
-    }
+        => _playerStats.ToDictionary(kv => kv.Key, kv => kv.Value);
 }

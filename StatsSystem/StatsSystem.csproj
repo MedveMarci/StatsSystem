@@ -61,6 +61,7 @@
         <Compile Include="API\StatsSystem.cs"/>
         <Compile Include="Commands\GetLeaderboard.cs"/>
         <Compile Include="Commands\GetStat.cs"/>
+        <Compile Include="Commands\ModifyStat.cs" />
         <Compile Include="Config.cs"/>
         <Compile Include="Events\EventHandler.cs"/>
         <Compile Include="Extensions\JsonExtension.cs"/>

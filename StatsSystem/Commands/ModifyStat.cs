@@ -1,0 +1,282 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using CommandSystem;
+using LabApi.Features.Permissions;
+using LabApi.Features.Wrappers;
+using NorthwoodLib.Pools;
+using StatsSystem.API;
+using Utils;
+
+namespace StatsSystem.Commands;
+
+[CommandHandler(typeof(RemoteAdminCommandHandler))]
+public sealed class AddStat : ModifyStatCommandBase
+{
+    public override string Command => "addstat";
+    public override string[] Aliases => [];
+    public override string Description => "Increases a player's stat by the provided amount. Usage: addstat <player> <statKey> <amount>";
+    protected override long GetDelta(long amount) => amount;
+}
+
+[CommandHandler(typeof(RemoteAdminCommandHandler))]
+public sealed class RemoveStat : ModifyStatCommandBase
+{
+    public override string Command => "removestat";
+    public override string[] Aliases => [];
+    public override string Description => "Decreases a player's stat by the provided amount. Usage: removestat <player> <statKey> <amount>";
+    protected override long GetDelta(long amount) => -amount;
+}
+
+[CommandHandler(typeof(RemoteAdminCommandHandler))]
+public sealed class SetStat : ICommand, IUsageProvider
+{
+    public string Command => "setstat";
+    public string[] Aliases => [];
+    public string Description => "Sets a player's stat to the provided value. Usage: setstat <player> <statKey> <value>";
+    public string[] Usage => ["%player%", "<statKey>", "<value>"];
+
+    public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+    {
+        var player = Player.Get(sender);
+
+        if (player == null)
+        {
+            response = "You must be a player to use this command.";
+            return false;
+        }
+        
+        if (!player.HasPermissions("xp.stat"))
+        {
+            response = "You do not have permission to use this command.";
+            return false;
+        }
+        
+        if (arguments.Count < 3)
+        {
+            response = $"Usage: {Command} <player> <statKey> <value>";
+            return false;
+        }
+
+        List<ReferenceHub> hubs = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out string[] newargs);
+        bool hasOnlinePlayers = hubs is { Count: > 0 };
+
+        string statKey = hasOnlinePlayers ? newargs[0] : arguments.At(1);
+        string valueRaw = hasOnlinePlayers ? newargs[1] : arguments.At(2);
+
+        if (!long.TryParse(valueRaw, out long value))
+        {
+            response = "Value must be an integer.";
+            return false;
+        }
+
+        if (hasOnlinePlayers)
+        {
+            int affected = 0;
+            StringBuilder sb = StringBuilderPool.Shared.Rent();
+
+            foreach (ReferenceHub hub in hubs)
+            {
+                Player player1 = Player.Get(hub);
+                if (player1 == null) continue;
+
+                if (!StatsSystemPlugin.StatsSystem.TryGetOrCreatePlayerStats(player1, out PlayerStats stats))
+                    continue;
+
+                if (!TrySetStat(stats, statKey, value, player1.Nickname, out string line))
+                {
+                    response = line;
+                    StringBuilderPool.Shared.Return(sb);
+                    return false;
+                }
+
+                if (affected > 0) sb.Append('\n');
+                sb.Append(line);
+                affected++;
+            }
+
+            string result = sb.ToString();
+            StringBuilderPool.Shared.Return(sb);
+
+            response = affected > 0 ? result : "No players were affected.";
+            return affected > 0;
+        }
+
+        // Offline fallback
+        string query = arguments.At(0);
+        if (!StatsSystemPlugin.StatsSystem.TryGetPlayerStats(query, out PlayerStats offlineStats))
+        {
+            response = $"Player '{query}' was not found online, and no saved stats exist for that identifier.";
+            return false;
+        }
+
+        return TrySetStat(offlineStats, statKey, value, query, out response);
+    }
+
+    private static bool TrySetStat(PlayerStats stats, string statKey, long value, string targetName, out string response)
+    {
+        bool isCounter = stats.Counters.ContainsKey(statKey);
+        bool isDuration = stats.Durations.ContainsKey(statKey);
+
+        if (!isCounter && !isDuration)
+        {
+            List<string> allKeys = stats.Counters.Keys
+                .Concat(stats.Durations.Keys)
+                .OrderBy(k => k, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            string available = allKeys.Count == 0
+                ? "No stat keys are currently available."
+                : $"Available stat keys: {string.Join(", ", allKeys)}";
+
+            response = $"Invalid statKey '{statKey}'. {available}";
+            return false;
+        }
+
+        if (isCounter)
+        {
+            long oldValue = stats.Counters[statKey];
+            stats.Counters[statKey] = value;
+            response = $"{targetName}: '{statKey}' set from {oldValue} to {value}.";
+        }
+        else
+        {
+            TimeSpan oldValue = stats.Durations[statKey];
+            stats.Durations[statKey] = TimeSpan.FromSeconds(value);
+            response = $"{targetName}: '{statKey}' set from {oldValue} to {TimeSpan.FromSeconds(value)}.";
+        }
+
+        return true;
+    }
+}
+
+public abstract class ModifyStatCommandBase : ICommand, IUsageProvider
+{
+    public abstract string Command { get; }
+    public abstract string[] Aliases { get; }
+    public abstract string Description { get; }
+    public string[] Usage => ["%player%", "<statKey>", "<amount>"];
+
+    public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+    {
+        var player = Player.Get(sender);
+
+        if (player == null)
+        {
+            response = "You must be a player to use this command.";
+            return false;
+        }
+        
+        if (!player.HasPermissions("xp.stat"))
+        {
+            response = "You do not have permission to use this command.";
+            return false;
+        }
+        
+        if (arguments.Count < 3)
+        {
+            response = $"Usage: {Command} <player> <statKey> <amount>";
+            return false;
+        }
+
+        // Online player resolution – same as NoclipCommand
+        List<ReferenceHub> hubs = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out string[] newargs);
+        bool hasOnlinePlayers = hubs is { Count: > 0 };
+
+        // If online players found, newargs = [statKey, amount, ...]
+        // Otherwise fall back to arguments directly for offline lookup
+        string statKey = hasOnlinePlayers ? newargs[0] : arguments.At(1);
+        string amountRaw = hasOnlinePlayers ? newargs[1] : arguments.At(2);
+
+        if (!long.TryParse(amountRaw, out long amount) || amount < 0)
+        {
+            response = "Amount must be a non-negative integer.";
+            return false;
+        }
+
+        long delta = GetDelta(amount);
+        string action = delta >= 0 ? "increased" : "decreased";
+
+        if (hasOnlinePlayers)
+        {
+            int affected = 0;
+            StringBuilder sb = StringBuilderPool.Shared.Rent();
+
+            foreach (ReferenceHub hub in hubs)
+            {
+                Player player1 = Player.Get(hub);
+                if (player1 == null) continue;
+
+                if (!StatsSystemPlugin.StatsSystem.TryGetOrCreatePlayerStats(player1, out PlayerStats stats))
+                    continue;
+
+                if (!TryModifyStat(stats, statKey, delta, action, player1.Nickname, out string line))
+                {
+                    // statKey invalid – return immediately with the error + available keys
+                    response = line;
+                    StringBuilderPool.Shared.Return(sb);
+                    return false;
+                }
+
+                if (affected > 0) sb.Append('\n');
+                sb.Append(line);
+                affected++;
+            }
+
+            string result = sb.ToString();
+            StringBuilderPool.Shared.Return(sb);
+
+            response = affected > 0 ? result : "No players were affected.";
+            return affected > 0;
+        }
+
+        // Offline fallback
+        string query = arguments.At(0);
+        if (!StatsSystemPlugin.StatsSystem.TryGetPlayerStats(query, out PlayerStats offlineStats))
+        {
+            response = $"Player '{query}' was not found online, and no saved stats exist for that identifier.";
+            return false;
+        }
+
+        return TryModifyStat(offlineStats, statKey, delta, action, query, out response);
+    }
+
+    private static bool TryModifyStat(PlayerStats stats, string statKey, long delta, string action, string targetName, out string response)
+    {
+        bool isCounter = stats.Counters.ContainsKey(statKey);
+        bool isDuration = stats.Durations.ContainsKey(statKey);
+
+        if (!isCounter && !isDuration)
+        {
+            List<string> allKeys = stats.Counters.Keys
+                .Concat(stats.Durations.Keys)
+                .OrderBy(k => k, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            string available = allKeys.Count == 0
+                ? "No stat keys are currently available."
+                : $"Available stat keys: {string.Join(", ", allKeys)}";
+
+            response = $"Invalid statKey '{statKey}'. {available}";
+            return false;
+        }
+
+        if (isCounter)
+        {
+            long oldValue = stats.Counters[statKey];
+            stats.Counters[statKey] = oldValue + delta;
+            response = $"{targetName}: '{statKey}' {action} from {oldValue} to {stats.Counters[statKey]}.";
+        }
+        else
+        {
+            TimeSpan oldValue = stats.Durations[statKey];
+            stats.Durations[statKey] = oldValue + TimeSpan.FromSeconds(delta);
+            response = $"{targetName}: '{statKey}' {action} from {oldValue} to {stats.Durations[statKey]}.";
+        }
+
+        return true;
+    }
+
+    protected abstract long GetDelta(long amount);
+}
