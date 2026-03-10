@@ -47,7 +47,7 @@ public sealed class SetStat : ICommand, IUsageProvider
             return false;
         }
         
-        if (!player.HasPermissions("xp.stat"))
+        if (!player.HasPermissions("stat.manage"))
         {
             response = "You do not have permission to use this command.";
             return false;
@@ -168,7 +168,7 @@ public abstract class ModifyStatCommandBase : ICommand, IUsageProvider
             return false;
         }
         
-        if (!player.HasPermissions("xp.stat"))
+        if (!player.HasPermissions("stat.manage"))
         {
             response = "You do not have permission to use this command.";
             return false;
