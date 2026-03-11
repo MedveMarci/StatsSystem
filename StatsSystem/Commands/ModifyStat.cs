@@ -227,7 +227,7 @@ public abstract class ModifyStatCommandBase : ICommand, IUsageProvider
         }
 
         string query = arguments.At(0);
-        if (!StatsSystemPlugin.StatsSystem.TryGetPlayerStats(query, out PlayerStats offlineStats))
+        if (!StatsSystemPlugin.StatsSystem.TryGetOrCreatePlayerStats(query, out PlayerStats offlineStats))
         {
             response = $"Player '{query}' was not found online, and no saved stats exist for that identifier.";
             return false;
