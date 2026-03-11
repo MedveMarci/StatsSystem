@@ -46,13 +46,13 @@ public sealed class SetStat : ICommand, IUsageProvider
             response = "You must be a player to use this command.";
             return false;
         }
-        
+
         if (!player.HasPermissions("stat.manage"))
         {
             response = "You do not have permission to use this command.";
             return false;
         }
-        
+
         if (arguments.Count < 3)
         {
             response = $"Usage: {Command} <player> <statKey> <value>";
@@ -115,35 +115,22 @@ public sealed class SetStat : ICommand, IUsageProvider
 
     private static bool TrySetStat(PlayerStats stats, string statKey, long value, string targetName, out string response)
     {
-        bool isCounter = stats.Counters.ContainsKey(statKey);
-        bool isDuration = stats.Durations.ContainsKey(statKey);
-
-        if (!isCounter && !isDuration)
-        {
-            List<string> allKeys = stats.Counters.Keys
-                .Concat(stats.Durations.Keys)
-                .OrderBy(k => k, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            string available = allKeys.Count == 0
-                ? "No stat keys are currently available."
-                : $"Available stat keys: {string.Join(", ", allKeys)}";
-
-            response = $"Invalid statKey '{statKey}'. {available}";
-            return false;
-        }
+        string resolvedStatKey = ModifyStatCommandBase.ResolveOrCreateStatKey(stats, statKey, out bool created);
+        bool isCounter = stats.Counters.ContainsKey(resolvedStatKey);
 
         if (isCounter)
         {
-            long oldValue = stats.Counters[statKey];
-            stats.Counters[statKey] = value;
-            response = $"{targetName}: '{statKey}' set from {oldValue} to {value}.";
+            long oldValue = stats.Counters[resolvedStatKey];
+            stats.Counters[resolvedStatKey] = value;
+            response = created
+                ? $"{targetName}: created new stat '{resolvedStatKey}' and set it to {value}."
+                : $"{targetName}: '{resolvedStatKey}' set from {oldValue} to {value}.";
         }
         else
         {
-            TimeSpan oldValue = stats.Durations[statKey];
-            stats.Durations[statKey] = TimeSpan.FromSeconds(value);
-            response = $"{targetName}: '{statKey}' set from {oldValue} to {TimeSpan.FromSeconds(value)}.";
+            TimeSpan oldValue = stats.Durations[resolvedStatKey];
+            stats.Durations[resolvedStatKey] = TimeSpan.FromSeconds(value);
+            response = $"{targetName}: '{resolvedStatKey}' set from {oldValue} to {TimeSpan.FromSeconds(value)}.";
         }
 
         return true;
@@ -166,13 +153,13 @@ public abstract class ModifyStatCommandBase : ICommand, IUsageProvider
             response = "You must be a player to use this command.";
             return false;
         }
-        
+
         if (!player.HasPermissions("stat.manage"))
         {
             response = "You do not have permission to use this command.";
             return false;
         }
-        
+
         if (arguments.Count < 3)
         {
             response = $"Usage: {Command} <player> <statKey> <amount>";
@@ -236,37 +223,41 @@ public abstract class ModifyStatCommandBase : ICommand, IUsageProvider
         return TryModifyStat(offlineStats, statKey, delta, action, query, out response);
     }
 
+    internal static string ResolveOrCreateStatKey(PlayerStats stats, string statKey, out bool created)
+    {
+        string resolvedStatKey = stats.Counters.Keys
+            .Concat(stats.Durations.Keys)
+            .FirstOrDefault(key => string.Equals(key, statKey, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(resolvedStatKey))
+        {
+            created = false;
+            return resolvedStatKey;
+        }
+
+        stats.Counters[statKey] = 0;
+        created = true;
+        return statKey;
+    }
+
     private static bool TryModifyStat(PlayerStats stats, string statKey, long delta, string action, string targetName, out string response)
     {
-        bool isCounter = stats.Counters.ContainsKey(statKey);
-        bool isDuration = stats.Durations.ContainsKey(statKey);
-
-        if (!isCounter && !isDuration)
-        {
-            List<string> allKeys = stats.Counters.Keys
-                .Concat(stats.Durations.Keys)
-                .OrderBy(k => k, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            string available = allKeys.Count == 0
-                ? "No stat keys are currently available."
-                : $"Available stat keys: {string.Join(", ", allKeys)}";
-
-            response = $"Invalid statKey '{statKey}'. {available}";
-            return false;
-        }
+        string resolvedStatKey = ResolveOrCreateStatKey(stats, statKey, out bool created);
+        bool isCounter = stats.Counters.ContainsKey(resolvedStatKey);
 
         if (isCounter)
         {
-            long oldValue = stats.Counters[statKey];
-            stats.Counters[statKey] = oldValue + delta;
-            response = $"{targetName}: '{statKey}' {action} from {oldValue} to {stats.Counters[statKey]}.";
+            long oldValue = stats.Counters[resolvedStatKey];
+            stats.Counters[resolvedStatKey] = oldValue + delta;
+            response = created
+                ? $"{targetName}: created new stat '{resolvedStatKey}' with value {stats.Counters[resolvedStatKey]}."
+                : $"{targetName}: '{resolvedStatKey}' {action} from {oldValue} to {stats.Counters[resolvedStatKey]}.";
         }
         else
         {
-            TimeSpan oldValue = stats.Durations[statKey];
-            stats.Durations[statKey] = oldValue + TimeSpan.FromSeconds(delta);
-            response = $"{targetName}: '{statKey}' {action} from {oldValue} to {stats.Durations[statKey]}.";
+            TimeSpan oldValue = stats.Durations[resolvedStatKey];
+            stats.Durations[resolvedStatKey] = oldValue + TimeSpan.FromSeconds(delta);
+            response = $"{targetName}: '{resolvedStatKey}' {action} from {oldValue} to {stats.Durations[resolvedStatKey]}.";
         }
 
         return true;
