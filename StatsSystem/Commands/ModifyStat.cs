@@ -103,11 +103,10 @@ public sealed class SetStat : ICommand, IUsageProvider
             return affected > 0;
         }
 
-        // Offline fallback
         string query = arguments.At(0);
-        if (!StatsSystemPlugin.StatsSystem.TryGetPlayerStats(query, out PlayerStats offlineStats))
+        if (!StatsSystemPlugin.StatsSystem.TryGetOrCreatePlayerStats(query, out PlayerStats offlineStats))
         {
-            response = $"Player '{query}' was not found online, and no saved stats exist for that identifier.";
+            response = $"Could not resolve or create stats for '{query}'.";
             return false;
         }
 
@@ -180,12 +179,9 @@ public abstract class ModifyStatCommandBase : ICommand, IUsageProvider
             return false;
         }
 
-        // Online player resolution – same as NoclipCommand
         List<ReferenceHub> hubs = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out string[] newargs);
         bool hasOnlinePlayers = hubs is { Count: > 0 };
 
-        // If online players found, newargs = [statKey, amount, ...]
-        // Otherwise fall back to arguments directly for offline lookup
         string statKey = hasOnlinePlayers ? newargs[0] : arguments.At(1);
         string amountRaw = hasOnlinePlayers ? newargs[1] : arguments.At(2);
 
@@ -213,7 +209,6 @@ public abstract class ModifyStatCommandBase : ICommand, IUsageProvider
 
                 if (!TryModifyStat(stats, statKey, delta, action, player1.Nickname, out string line))
                 {
-                    // statKey invalid – return immediately with the error + available keys
                     response = line;
                     StringBuilderPool.Shared.Return(sb);
                     return false;
@@ -231,7 +226,6 @@ public abstract class ModifyStatCommandBase : ICommand, IUsageProvider
             return affected > 0;
         }
 
-        // Offline fallback
         string query = arguments.At(0);
         if (!StatsSystemPlugin.StatsSystem.TryGetPlayerStats(query, out PlayerStats offlineStats))
         {
