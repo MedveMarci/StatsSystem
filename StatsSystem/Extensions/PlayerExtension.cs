@@ -341,6 +341,20 @@ public static class PlayerExtension
         return StatsSystemPlugin.StatsSystem?.GetAllPlayerStatsSnapshot() ?? new Dictionary<string, PlayerStats>();
     }
 
+    /// <summary>
+    ///     Returns a snapshot of all players' stats keyed by UserId from the specified file.
+    /// </summary>
+    /// <remarks>
+    ///     The returned dictionary is a shallow copy and won't reflect future additions/removals.
+    ///     The <see cref="PlayerStats" /> instances are shared references.
+    /// </remarks>
+    /// <param name="file">Optional file to read stats from. The ".json" extension is added automatically if omitted. Pass <c>null</c> to use the default file.</param>
+    /// <returns>Read-only dictionary mapping UserId to PlayerStats.</returns>
+    public static IReadOnlyDictionary<string, PlayerStats> GetAllPlayerStats(string file)
+    {
+        return StatsSystemPlugin.StatsSystem?.GetAllPlayerStatsSnapshot(file) ?? new Dictionary<string, PlayerStats>();
+    }
+
     public static long GetLastDaysCounter(this Player player, string key, int days, string file = null)
     {
         return player == null ? 0L : StatsSystemPlugin.StatsSystem.GetPlayerLastDaysCounter(player, key, days, file);

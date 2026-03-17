@@ -388,4 +388,7 @@ internal class StatsSystem
 
     internal IReadOnlyDictionary<string, PlayerStats> GetAllPlayerStatsSnapshot()
         => _playerStats.ToDictionary(kv => kv.Key, kv => kv.Value);
+
+    internal IReadOnlyDictionary<string, PlayerStats> GetAllPlayerStatsSnapshot(string file)
+        => GetStatsDict(file).ToDictionary(kv => kv.Key, kv => kv.Value);
 }

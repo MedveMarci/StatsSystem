@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -39,15 +40,15 @@ public sealed class SetStat : ICommand, IUsageProvider
 
     public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
     {
-        var player = Player.Get(sender);
+        var issuer = Player.Get(sender);
 
-        if (player == null)
+        if (issuer == null)
         {
             response = "You must be a player to use this command.";
             return false;
         }
 
-        if (!player.HasPermissions("stat.manage"))
+        if (!issuer.HasPermissions("stat.manage"))
         {
             response = "You do not have permission to use this command.";
             return false;
@@ -55,15 +56,21 @@ public sealed class SetStat : ICommand, IUsageProvider
 
         if (arguments.Count < 3)
         {
-            response = $"Usage: {Command} <player> <statKey> <value>";
+            response = $"Usage: {Command} {string.Join(" ", Usage)}";
             return false;
         }
 
-        List<ReferenceHub> hubs = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out string[] newargs);
-        bool hasOnlinePlayers = hubs is { Count: > 0 };
+        List<ReferenceHub> hubs = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out string[] remaining);
+        bool hasOnline = hubs is { Count: > 0 };
 
-        string statKey = hasOnlinePlayers ? newargs[0] : arguments.At(1);
-        string valueRaw = hasOnlinePlayers ? newargs[1] : arguments.At(2);
+        if (hasOnline && (remaining == null || remaining.Length < 2))
+        {
+            response = $"Usage: {Command} {string.Join(" ", Usage)}";
+            return false;
+        }
+
+        string statKey  = hasOnline ? remaining![0] : arguments.At(1);
+        string valueRaw = hasOnline ? remaining![1] : arguments.At(2);
 
         if (!long.TryParse(valueRaw, out long value))
         {
@@ -71,20 +78,20 @@ public sealed class SetStat : ICommand, IUsageProvider
             return false;
         }
 
-        if (hasOnlinePlayers)
+        if (hasOnline)
         {
-            int affected = 0;
             StringBuilder sb = StringBuilderPool.Shared.Rent();
+            int affected = 0;
 
             foreach (ReferenceHub hub in hubs)
             {
-                Player player1 = Player.Get(hub);
-                if (player1 == null) continue;
+                Player p = Player.Get(hub);
+                if (p == null) continue;
 
-                if (!StatsSystemPlugin.StatsSystem.TryGetOrCreatePlayerStats(player1, out PlayerStats stats))
+                if (!StatsSystemPlugin.StatsSystem.TryGetOrCreatePlayerStats(p, out PlayerStats stats))
                     continue;
 
-                if (!TrySetStat(stats, statKey, value, player1.Nickname, out string line))
+                if (!StatHelper.TrySet(stats, statKey, value, p.Nickname, out string line))
                 {
                     response = line;
                     StringBuilderPool.Shared.Return(sb);
@@ -98,7 +105,6 @@ public sealed class SetStat : ICommand, IUsageProvider
 
             string result = sb.ToString();
             StringBuilderPool.Shared.Return(sb);
-
             response = affected > 0 ? result : "No players were affected.";
             return affected > 0;
         }
@@ -110,30 +116,7 @@ public sealed class SetStat : ICommand, IUsageProvider
             return false;
         }
 
-        return TrySetStat(offlineStats, statKey, value, query, out response);
-    }
-
-    private static bool TrySetStat(PlayerStats stats, string statKey, long value, string targetName, out string response)
-    {
-        string resolvedStatKey = ModifyStatCommandBase.ResolveOrCreateStatKey(stats, statKey, out bool created);
-        bool isCounter = stats.Counters.ContainsKey(resolvedStatKey);
-
-        if (isCounter)
-        {
-            long oldValue = stats.Counters[resolvedStatKey];
-            stats.Counters[resolvedStatKey] = value;
-            response = created
-                ? $"{targetName}: created new stat '{resolvedStatKey}' and set it to {value}."
-                : $"{targetName}: '{resolvedStatKey}' set from {oldValue} to {value}.";
-        }
-        else
-        {
-            TimeSpan oldValue = stats.Durations[resolvedStatKey];
-            stats.Durations[resolvedStatKey] = TimeSpan.FromSeconds(value);
-            response = $"{targetName}: '{resolvedStatKey}' set from {oldValue} to {TimeSpan.FromSeconds(value)}.";
-        }
-
-        return true;
+        return StatHelper.TrySet(offlineStats, statKey, value, query, out response);
     }
 }
 
@@ -146,15 +129,15 @@ public abstract class ModifyStatCommandBase : ICommand, IUsageProvider
 
     public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
     {
-        var player = Player.Get(sender);
+        var issuer = Player.Get(sender);
 
-        if (player == null)
+        if (issuer == null)
         {
             response = "You must be a player to use this command.";
             return false;
         }
 
-        if (!player.HasPermissions("stat.manage"))
+        if (!issuer.HasPermissions("stat.manage"))
         {
             response = "You do not have permission to use this command.";
             return false;
@@ -162,15 +145,21 @@ public abstract class ModifyStatCommandBase : ICommand, IUsageProvider
 
         if (arguments.Count < 3)
         {
-            response = $"Usage: {Command} <player> <statKey> <amount>";
+            response = $"Usage: {Command} {string.Join(" ", Usage)}";
             return false;
         }
 
-        List<ReferenceHub> hubs = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out string[] newargs);
-        bool hasOnlinePlayers = hubs is { Count: > 0 };
+        List<ReferenceHub> hubs = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out string[] remaining);
+        bool hasOnline = hubs is { Count: > 0 };
 
-        string statKey = hasOnlinePlayers ? newargs[0] : arguments.At(1);
-        string amountRaw = hasOnlinePlayers ? newargs[1] : arguments.At(2);
+        if (hasOnline && (remaining == null || remaining.Length < 2))
+        {
+            response = $"Usage: {Command} {string.Join(" ", Usage)}";
+            return false;
+        }
+
+        string statKey   = hasOnline ? remaining![0] : arguments.At(1);
+        string amountRaw = hasOnline ? remaining![1] : arguments.At(2);
 
         if (!long.TryParse(amountRaw, out long amount) || amount < 0)
         {
@@ -178,23 +167,23 @@ public abstract class ModifyStatCommandBase : ICommand, IUsageProvider
             return false;
         }
 
-        long delta = GetDelta(amount);
+        long   delta  = GetDelta(amount);
         string action = delta >= 0 ? "increased" : "decreased";
 
-        if (hasOnlinePlayers)
+        if (hasOnline)
         {
-            int affected = 0;
             StringBuilder sb = StringBuilderPool.Shared.Rent();
+            int affected = 0;
 
             foreach (ReferenceHub hub in hubs)
             {
-                Player player1 = Player.Get(hub);
-                if (player1 == null) continue;
+                Player p = Player.Get(hub);
+                if (p == null) continue;
 
-                if (!StatsSystemPlugin.StatsSystem.TryGetOrCreatePlayerStats(player1, out PlayerStats stats))
+                if (!StatsSystemPlugin.StatsSystem.TryGetOrCreatePlayerStats(p, out PlayerStats stats))
                     continue;
 
-                if (!TryModifyStat(stats, statKey, delta, action, player1.Nickname, out string line))
+                if (!StatHelper.TryModify(stats, statKey, delta, action, p.Nickname, out string line))
                 {
                     response = line;
                     StringBuilderPool.Shared.Return(sb);
@@ -208,7 +197,6 @@ public abstract class ModifyStatCommandBase : ICommand, IUsageProvider
 
             string result = sb.ToString();
             StringBuilderPool.Shared.Return(sb);
-
             response = affected > 0 ? result : "No players were affected.";
             return affected > 0;
         }
@@ -216,52 +204,65 @@ public abstract class ModifyStatCommandBase : ICommand, IUsageProvider
         string query = arguments.At(0);
         if (!StatsSystemPlugin.StatsSystem.TryGetOrCreatePlayerStats(query, out PlayerStats offlineStats))
         {
-            response = $"Player '{query}' was not found online, and no saved stats exist for that identifier.";
+            response = $"Player '{query}' was not found online and no saved stats exist for that identifier.";
             return false;
         }
 
-        return TryModifyStat(offlineStats, statKey, delta, action, query, out response);
+        return StatHelper.TryModify(offlineStats, statKey, delta, action, query, out response);
     }
 
+    protected abstract long GetDelta(long amount);
+}
+
+internal static class StatHelper
+{
+    private static string Today => DateTime.UtcNow.ToString("yyyy-MM-dd");
+    
     internal static string ResolveOrCreateStatKey(PlayerStats stats, string statKey, out bool created)
     {
-        string resolvedStatKey = stats.Counters.Keys
-            .Concat(stats.Durations.Keys)
-            .FirstOrDefault(key => string.Equals(key, statKey, StringComparison.OrdinalIgnoreCase));
+        string found = stats.DailyCounters.Keys
+            .FirstOrDefault(k => string.Equals(k, statKey, StringComparison.OrdinalIgnoreCase));
 
-        if (!string.IsNullOrWhiteSpace(resolvedStatKey))
+        if (found != null)
         {
             created = false;
-            return resolvedStatKey;
+            return found;
         }
 
-        stats.Counters[statKey] = 0;
+        stats.DailyCounters.GetOrAdd(statKey, _ => new ConcurrentDictionary<string, long>());
         created = true;
         return statKey;
     }
 
-    private static bool TryModifyStat(PlayerStats stats, string statKey, long delta, string action, string targetName, out string response)
+    internal static bool TryModify(PlayerStats stats, string statKey, long delta, string action,
+        string targetName, out string response)
     {
-        string resolvedStatKey = ResolveOrCreateStatKey(stats, statKey, out bool created);
-        bool isCounter = stats.Counters.ContainsKey(resolvedStatKey);
+        string resolvedKey = ResolveOrCreateStatKey(stats, statKey, out bool created);
+        string today       = Today;
 
-        if (isCounter)
-        {
-            long oldValue = stats.Counters[resolvedStatKey];
-            stats.Counters[resolvedStatKey] = oldValue + delta;
-            response = created
-                ? $"{targetName}: created new stat '{resolvedStatKey}' with value {stats.Counters[resolvedStatKey]}."
-                : $"{targetName}: '{resolvedStatKey}' {action} from {oldValue} to {stats.Counters[resolvedStatKey]}.";
-        }
-        else
-        {
-            TimeSpan oldValue = stats.Durations[resolvedStatKey];
-            stats.Durations[resolvedStatKey] = oldValue + TimeSpan.FromSeconds(delta);
-            response = $"{targetName}: '{resolvedStatKey}' {action} from {oldValue} to {stats.Durations[resolvedStatKey]}.";
-        }
+        var  perDay   = stats.DailyCounters.GetOrAdd(resolvedKey, _ => new ConcurrentDictionary<string, long>());
+        long oldValue = perDay.GetOrAdd(today, 0);
+        long newValue = perDay.AddOrUpdate(today, delta, (_, v) => v + delta);
 
+        response = created
+            ? $"{targetName}: created new stat '{resolvedKey}' with value {newValue}."
+            : $"{targetName}: '{resolvedKey}' {action} from {oldValue} to {newValue}.";
         return true;
     }
 
-    protected abstract long GetDelta(long amount);
+    internal static bool TrySet(PlayerStats stats, string statKey, long value,
+        string targetName, out string response)
+    {
+        string resolvedKey = ResolveOrCreateStatKey(stats, statKey, out bool created);
+        string today       = Today;
+
+        var  perDay   = stats.DailyCounters.GetOrAdd(resolvedKey, _ => new ConcurrentDictionary<string, long>());
+        long oldValue = perDay.TryGetValue(today, out long ov) ? ov : 0;
+        perDay[today] = value;
+
+        response = created
+            ? $"{targetName}: created new stat '{resolvedKey}' and set it to {value}."
+            : $"{targetName}: '{resolvedKey}' set from {oldValue} to {value}.";
+        return true;
+    }
 }

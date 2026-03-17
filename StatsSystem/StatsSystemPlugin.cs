@@ -22,7 +22,7 @@ internal class StatsSystemPlugin : Plugin<Config>
     public override string Name => "StatsSystem";
     public override string Description => "StatSystem";
     public override string Author => "MedveMarci";
-    public override Version Version { get; } = new(1, 2, 1);
+    public override Version Version { get; } = new(1, 3, 0);
     public override Version RequiredApiVersion => new(LabApiProperties.CompiledVersion);
     public override bool IsTransparent => true;
 
