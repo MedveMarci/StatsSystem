@@ -40,8 +40,8 @@ internal sealed class Config
 
     [Description(
         "Storage backend to use for persistence.\n" +
-        "  Json   — Human-readable JSON files. Backwards compatible with v1 data. Default.\n" +
-        "  Binary — Compact binary format (~60-80% smaller, 3-5x faster to read/write).\n" +
+        "  Json   - Human-readable JSON files. Backwards compatible with v1 data. Default.\n" +
+        "  Binary - Compact binary format (~60-80% smaller, 3-5x faster to read/write).\n" +
         "           Not human-readable. When switching from Json, run 'ss migrate' first\n" +
         "           or your existing data will not be loaded automatically.")]
     public StorageProviderType StorageProvider { get; set; } = StorageProviderType.Json;
