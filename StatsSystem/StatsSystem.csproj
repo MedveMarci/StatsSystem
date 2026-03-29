@@ -48,6 +48,7 @@
         <Reference Include="System.Numerics"/>
         <Reference Include="System.Xml"/>
         <Reference Include="Assembly-CSharp-Publicized" HintPath="$(sl_references)\Assembly-CSharp-Publicized.dll"/>
+        <Reference Include="Assembly-CSharp-firstpass" HintPath="$(sl_references)\Assembly-CSharp-firstpass.dll"/>
         <Reference Include="Mirror" HintPath="$(sl_references)\Mirror.dll"/>
         <Reference Include="CommandSystem.Core" HintPath="$(sl_references)\CommandSystem.Core.dll"/>
         <Reference Include="UnityEngine.CoreModule" HintPath="$(sl_references)\UnityEngine.CoreModule.dll"/>
@@ -55,19 +56,26 @@
         <Reference Include="NorthwoodLib" HintPath="$(SL_REFERENCES)\NorthwoodLib.dll"/>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="ApiFeatures\ApiManager.cs"/>
-        <Compile Include="ApiFeatures\BearmanLogsCommand.cs"/>
-        <Compile Include="ApiFeatures\LogManager.cs"/>
-        <Compile Include="API\StatsSystem.cs"/>
-        <Compile Include="Commands\GetLeaderboard.cs"/>
-        <Compile Include="Commands\GetStat.cs"/>
-        <Compile Include="Commands\ModifyStat.cs" />
-        <Compile Include="Config.cs"/>
-        <Compile Include="Events\EventHandler.cs"/>
-        <Compile Include="Extensions\JsonExtension.cs"/>
-        <Compile Include="Extensions\PlayerExtension.cs"/>
-        <Compile Include="StatsSystemPlugin.cs"/>
+        <Compile Include="ApiFeatures\ApiManager.cs" />
+        <Compile Include="ApiFeatures\BearmanLogsCommand.cs" />
+        <Compile Include="ApiFeatures\LogManager.cs" />
+        <Compile Include="API\IStatsProvider.cs" />
+        <Compile Include="API\PlayerStats.cs" />
+        <Compile Include="API\StatsRepository.cs" />
+        <Compile Include="Commands\AdminStatsCommand.cs" />
+        <Compile Include="Commands\GetStatCommand.cs" />
+        <Compile Include="Commands\LeaderboardCommand.cs" />
+        <Compile Include="Commands\ModifyStatCommand.cs" />
+        <Compile Include="Config.cs" />
+        <Compile Include="Events\EventHandler.cs" />
+        <Compile Include="Extensions\JsonExtension.cs" />
+        <Compile Include="Extensions\PlayerExtension.cs" />
+        <Compile Include="Migration\V1Migrator.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>
+        <Compile Include="StatsSystemPlugin.cs" />
+        <Compile Include="Storage\BinaryStorageProvider.cs" />
+        <Compile Include="Storage\IStorageProvider.cs" />
+        <Compile Include="Storage\JsonStorageProvider.cs" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="System.Net.Http" Version="4.3.4"/>
@@ -83,5 +91,4 @@
         <Exec Command="xcopy &quot;$(TargetPath)&quot; &quot;%appdata%\SCP Secret Laboratory\LabAPI\plugins\global&quot; /y"/>
         <Exec Command="xcopy &quot;$(TargetDir)$(TargetName).xml&quot; &quot;%appdata%\SCP Secret Laboratory\LabAPI\plugins\global&quot; /y"/>
     </Target>
-
 </Project>
