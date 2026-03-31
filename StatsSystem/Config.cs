@@ -38,12 +38,7 @@ internal sealed class Config
     [Description("How often (in seconds) stats are automatically saved to disk. Minimum: 10.")]
     public int AutoSaveIntervalSeconds { get; set; } = 60;
 
-    [Description(
-        "Storage backend to use for persistence.\n" +
-        "  Json   - Human-readable JSON files. Backwards compatible with v1 data. Default.\n" +
-        "  Binary - Compact binary format (~60-80% smaller, 3-5x faster to read/write).\n" +
-        "           Not human-readable. When switching from Json, run 'ss migrate' first\n" +
-        "           or your existing data will not be loaded automatically.")]
+    [Description("Storage backend: Json (default, human-readable, v1 compatible) or Binary (smaller, faster, not human-readable). When switching from Json to Binary, run 'ss migrate' first or existing data will not be loaded.")]
     public StorageProviderType StorageProvider { get; set; } = StorageProviderType.Json;
 }
 
