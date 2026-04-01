@@ -43,7 +43,7 @@ internal sealed class EventHandler : CustomEventsHandler
 
     public override void OnPlayerJoined(PlayerJoinedEventArgs ev)
     {
-        if (LabApi.Features.Wrappers.Round.IsRoundStarted && !ev.Player.DoNotTrack &&
+        if (Round.IsRoundStarted && !ev.Player.DoNotTrack &&
             StatsSystemPlugin.Singleton.Config.PlaytimeTracking)
         {
             SessionStartTimes[ev.Player.UserId] = DateTime.Now;
@@ -55,7 +55,7 @@ internal sealed class EventHandler : CustomEventsHandler
 
     public override void OnPlayerLeft(PlayerLeftEventArgs ev)
     {
-        if (!LabApi.Features.Wrappers.Round.IsRoundStarted || ev.Player?.UserId == null ||
+        if (!Round.IsRoundStarted || ev.Player?.UserId == null ||
             ev.Player.DoNotTrack || !StatsSystemPlugin.Singleton.Config.PlaytimeTracking)
         {
             base.OnPlayerLeft(ev);
@@ -74,7 +74,7 @@ internal sealed class EventHandler : CustomEventsHandler
 
     public override void OnPlayerDeath(PlayerDeathEventArgs ev)
     {
-        if (!LabApi.Features.Wrappers.Round.IsRoundStarted)
+        if (!Round.IsRoundStarted)
         {
             base.OnPlayerDeath(ev);
             return;
