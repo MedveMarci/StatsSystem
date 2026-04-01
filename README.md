@@ -107,10 +107,10 @@ Configuration is located at:
 ## Storage
 
 Stats are saved to:
-```
-Linux: `~/.config/SCP Secret Laboratory/LabAPI/configs/StatsSystem`
-Windows: `%appdata%/SCP Secret Laboratory/LabAPI/configs/StatsSystem`
-```
+
+- Linux: `~/.config/SCP Secret Laboratory/LabAPI/configs/StatsSystem`
+- Windows: `%appdata%/SCP Secret Laboratory/LabAPI/configs/StatsSystem`
+
 (or `player_stats.bin` when using Binary storage)
 
 ### JSON vs Binary
