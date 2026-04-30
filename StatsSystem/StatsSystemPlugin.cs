@@ -9,6 +9,7 @@ using LabApi.Loader.Features.Plugins;
 using MEC;
 using StatsSystem.API;
 using StatsSystem.ApiFeatures;
+using StatsSystem.Migration;
 using StatsSystem.Storage;
 using EventHandler = StatsSystem.Events.EventHandler;
 using Version = System.Version;
@@ -26,13 +27,15 @@ internal sealed class StatsSystemPlugin : Plugin<Config>
     public override string Name => "StatsSystem";
     public override string Description => "Professional player-statistics tracking for SCP:SL servers.";
     public override string Author => "MedveMarci";
-    public override Version Version { get; } = new(2, 0, 0);
+    public override Version Version { get; } = new(2, 1, 0);
     public override Version RequiredApiVersion => new(LabApiProperties.CompiledVersion);
     public override bool IsTransparent => true;
 
     public static StatsSystemPlugin Singleton { get; private set; }
 
     public static IStatsProvider Stats { get; private set; }
+
+    internal static string StatsDirectory { get; private set; }
 
     public static void UseStorageProvider(IStorageProvider provider)
     {
@@ -52,11 +55,14 @@ internal sealed class StatsSystemPlugin : Plugin<Config>
         Singleton = this;
 
         _statsDirectory = Path.Combine(PathManager.Configs.FullName, Config.StatsDataFolder);
+        StatsDirectory = _statsDirectory;
         if (!Directory.Exists(_statsDirectory))
         {
             LogManager.Warn($"Stats directory not found — creating '{_statsDirectory}'.");
             Directory.CreateDirectory(_statsDirectory);
         }
+
+        AutoConvertIfNeeded();
 
         _activeProvider = CreateProvider();
         var defaultId = "player_stats";
@@ -70,6 +76,13 @@ internal sealed class StatsSystemPlugin : Plugin<Config>
         LogManager.Info($"Stats stored at '{_statsDirectory}' using {Config.StorageProvider} provider.");
 
         Stats = new StatsRepository(defaultId, _activeProvider);
+
+        var migrateResult = V1Migrator.Repair(Stats.GetAllStatsSnapshot());
+        if (!migrateResult.StartsWith("Migration check complete"))
+        {
+            LogManager.Info("[V1Migrator] Auto-migration applied, saving...");
+            Stats.Save();
+        }
 
         _eventHandler = new EventHandler();
         Shutdown.OnQuit += EventHandler.OnQuit;
@@ -94,6 +107,44 @@ internal sealed class StatsSystemPlugin : Plugin<Config>
         _activeProvider = null;
         Stats = null;
         Singleton = null;
+    }
+
+    private void AutoConvertIfNeeded()
+    {
+        if (Config.StorageProvider == StorageProviderType.Binary)
+        {
+            foreach (var jsonFile in Directory.GetFiles(_statsDirectory, "*.json"))
+            {
+                var baseName = Path.GetFileNameWithoutExtension(jsonFile);
+                var binPath = Path.Combine(_statsDirectory, baseName + ".bin");
+                if (File.Exists(binPath)) continue;
+
+                LogManager.Info($"Auto-converting '{baseName}.json' -> '{baseName}.bin'...");
+                var data = new JsonStorageProvider(_statsDirectory).Load(baseName);
+                new BinaryStorageProvider(_statsDirectory).Save(baseName, data);
+                File.Delete(jsonFile);
+                var bakPath = jsonFile + ".bak";
+                if (File.Exists(bakPath)) File.Delete(bakPath);
+                LogManager.Info($"Converted {data.Count} player records, removed old JSON file.");
+            }
+        }
+        else
+        {
+            foreach (var binFile in Directory.GetFiles(_statsDirectory, "*.bin"))
+            {
+                var baseName = Path.GetFileNameWithoutExtension(binFile);
+                var jsonPath = Path.Combine(_statsDirectory, baseName + ".json");
+                if (File.Exists(jsonPath)) continue;
+
+                LogManager.Info($"Auto-converting '{baseName}.bin' -> '{baseName}.json'...");
+                var data = new BinaryStorageProvider(_statsDirectory).Load(baseName);
+                new JsonStorageProvider(_statsDirectory).Save(baseName, data);
+                File.Delete(binFile);
+                var bakPath = binFile + ".bak";
+                if (File.Exists(bakPath)) File.Delete(bakPath);
+                LogManager.Info($"Converted {data.Count} player records, removed old Binary file.");
+            }
+        }
     }
 
     private IStorageProvider CreateProvider()

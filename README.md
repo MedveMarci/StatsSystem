@@ -88,7 +88,6 @@ Configuration is located at:
 | `ss save` | `ss s` | Immediately save all stats to disk |
 | `ss reload` | `ss r` | Reload stats from disk |
 | `ss resetplayer <userId>` | `ss rp`, `ss reset` | Delete all stats for a player |
-| `ss migrate` | `ss m` | Repair legacy v1 counter inconsistencies |
 | `ss info` | `ss i` | Show system status (player count, keys, auto-save interval) |
 
 #### Stat Modification (Remote Admin)

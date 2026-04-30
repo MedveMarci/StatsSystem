@@ -3,7 +3,6 @@ using System.Linq;
 using CommandSystem;
 using LabApi.Features.Permissions;
 using LabApi.Features.Wrappers;
-using StatsSystem.Migration;
 
 namespace StatsSystem.Commands;
 
@@ -25,13 +24,12 @@ public sealed class AdminStatsCommand : ParentCommand
         RegisterCommand(new SaveSubcommand());
         RegisterCommand(new ReloadSubcommand());
         RegisterCommand(new ResetPlayerSubcommand());
-        RegisterCommand(new MigrateSubcommand());
         RegisterCommand(new InfoSubcommand());
     }
 
     protected override bool ExecuteParent(ArraySegment<string> arguments, ICommandSender sender, out string response)
     {
-        response = "Usage: ss <save | reload | resetplayer | migrate | info>";
+        response = "Usage: ss <save | reload | resetplayer | info>";
         return false;
     }
 
@@ -112,21 +110,6 @@ internal sealed class ResetPlayerSubcommand : ICommand, IUsageProvider
     }
 
     public string[] Usage => ["<userId>"];
-}
-
-internal sealed class MigrateSubcommand : ICommand
-{
-    public string Command => "migrate";
-    public string[] Aliases => ["m"];
-    public string Description => "Repairs counter inconsistencies left by the v1 addstat/removestat bug.";
-
-    public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
-    {
-        if (!AdminStatsCommand.AdminCheck(sender, out response)) return false;
-        var snapshot = StatsSystemPlugin.Stats.GetAllStatsSnapshot();
-        response = V1Migrator.Repair(snapshot);
-        return true;
-    }
 }
 
 internal sealed class InfoSubcommand : ICommand
