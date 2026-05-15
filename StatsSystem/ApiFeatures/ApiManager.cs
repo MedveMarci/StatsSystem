@@ -56,7 +56,8 @@ internal static class ApiManager
                     ConsoleColor.Blue);
 
             if (current > latest)
-                LogManager.Info($"You are running a newer version of {StatsSystemPlugin.Singleton.Name} ({StatsSystemPlugin.Singleton.Version}) than {latest}. This is a development/pre-release build and it can contain errors or bugs.",
+                LogManager.Info(
+                    $"You are running a newer version of {StatsSystemPlugin.Singleton.Name} ({StatsSystemPlugin.Singleton.Version}) than {latest}. This is a development/pre-release build and it can contain errors or bugs.",
                     ConsoleColor.DarkMagenta);
         }
         catch (Exception ex)
