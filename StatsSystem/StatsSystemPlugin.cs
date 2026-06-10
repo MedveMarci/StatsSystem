@@ -27,7 +27,7 @@ internal sealed class StatsSystemPlugin : Plugin<Config>
     public override string Name => "StatsSystem";
     public override string Description => "Professional player-statistics tracking for SCP:SL servers.";
     public override string Author => "MedveMarci";
-    public override Version Version { get; } = new(2, 1, 0);
+    public override Version Version { get; } = new(2, 1, 1);
     public override Version RequiredApiVersion => new(LabApiProperties.CompiledVersion);
     public override bool IsTransparent => true;
 
