@@ -19,15 +19,15 @@ namespace StatsSystem;
 internal sealed class StatsSystemPlugin : Plugin<Config>
 {
     private static IStorageProvider _activeProvider;
-    
+
     private CoroutineHandle _autoSaveHandle;
     private EventHandler _eventHandler;
     private string _statsDirectory;
-    
+
     public override string Name => "StatsSystem";
     public override string Description => "Professional player-statistics tracking for SCP:SL servers.";
     public override string Author => "MedveMarci";
-    public override Version Version { get; } = new(2, 1, 0);
+    public override Version Version { get; } = new(2, 1, 1);
     public override Version RequiredApiVersion => new(LabApiProperties.CompiledVersion);
     public override bool IsTransparent => true;
 
@@ -112,7 +112,6 @@ internal sealed class StatsSystemPlugin : Plugin<Config>
     private void AutoConvertIfNeeded()
     {
         if (Config.StorageProvider == StorageProviderType.Binary)
-        {
             foreach (var jsonFile in Directory.GetFiles(_statsDirectory, "*.json"))
             {
                 var baseName = Path.GetFileNameWithoutExtension(jsonFile);
@@ -127,9 +126,7 @@ internal sealed class StatsSystemPlugin : Plugin<Config>
                 if (File.Exists(bakPath)) File.Delete(bakPath);
                 LogManager.Info($"Converted {data.Count} player records, removed old JSON file.");
             }
-        }
         else
-        {
             foreach (var binFile in Directory.GetFiles(_statsDirectory, "*.bin"))
             {
                 var baseName = Path.GetFileNameWithoutExtension(binFile);
@@ -144,7 +141,6 @@ internal sealed class StatsSystemPlugin : Plugin<Config>
                 if (File.Exists(bakPath)) File.Delete(bakPath);
                 LogManager.Info($"Converted {data.Count} player records, removed old Binary file.");
             }
-        }
     }
 
     private IStorageProvider CreateProvider()

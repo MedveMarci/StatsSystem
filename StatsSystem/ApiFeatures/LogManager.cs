@@ -9,7 +9,7 @@ namespace StatsSystem.ApiFeatures;
 internal static class LogManager
 {
     private static readonly List<LogEntry> History = [];
-    private static bool DebugEnabled => StatsSystemPlugin.Singleton?.Config?.Debug ?? false;
+    private static bool DebugEnabled => StatsSystemPlugin.Singleton.Config.Debug;
 
     public static void Debug(string message)
     {

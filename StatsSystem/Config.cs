@@ -38,7 +38,8 @@ internal sealed class Config
     [Description("How often (in seconds) stats are automatically saved to disk. Minimum: 10.")]
     public int AutoSaveIntervalSeconds { get; set; } = 60;
 
-    [Description("Storage backend: Json (default, human-readable, v1 compatible) or Binary (smaller, faster, not human-readable). Switching formats auto-converts existing files on the next server start.")]
+    [Description(
+        "Storage backend: Json (default, human-readable, v1 compatible) or Binary (smaller, faster, not human-readable). Switching formats auto-converts existing files on the next server start.")]
     public StorageProviderType StorageProvider { get; set; } = StorageProviderType.Json;
 }
 
