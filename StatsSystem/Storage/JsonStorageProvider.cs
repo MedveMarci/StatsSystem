@@ -26,15 +26,14 @@ public sealed class JsonStorageProvider(string baseDirectory) : IStorageProvider
 
     public IReadOnlyDictionary<string, PlayerStats> Load(string identifier)
     {
-        var path = Resolve(identifier);
+        string path = Resolve(identifier);
         LogManager.Debug($"[JSON] Loading from '{path}'...");
         try
         {
             if (!File.Exists(path)) return new Dictionary<string, PlayerStats>();
-            var json = File.ReadAllText(path);
+            string json = File.ReadAllText(path);
             if (string.IsNullOrWhiteSpace(json)) return new Dictionary<string, PlayerStats>();
-            return JsonSerializer.Deserialize<Dictionary<string, PlayerStats>>(json, ReadOpts)
-                   ?? new Dictionary<string, PlayerStats>();
+            return JsonSerializer.Deserialize<Dictionary<string, PlayerStats>>(json, ReadOpts) ?? new Dictionary<string, PlayerStats>();
         }
         catch (Exception ex)
         {
@@ -45,11 +44,11 @@ public sealed class JsonStorageProvider(string baseDirectory) : IStorageProvider
 
     public void Save(string identifier, IReadOnlyDictionary<string, PlayerStats> data)
     {
-        var path = Resolve(identifier);
+        string path = Resolve(identifier);
         try
         {
             EnsureDir(path);
-            var json = JsonSerializer.Serialize(data, WriteOpts);
+            string json = JsonSerializer.Serialize(data, WriteOpts);
             WriteAtomic(path, json);
         }
         catch (Exception ex)
@@ -60,11 +59,11 @@ public sealed class JsonStorageProvider(string baseDirectory) : IStorageProvider
 
     public async Task SaveAsync(string identifier, IReadOnlyDictionary<string, PlayerStats> data)
     {
-        var path = Resolve(identifier);
+        string path = Resolve(identifier);
         try
         {
             EnsureDir(path);
-            var json = JsonSerializer.Serialize(data, WriteOpts);
+            string json = JsonSerializer.Serialize(data, WriteOpts);
             await WriteAtomicAsync(path, json);
         }
         catch (Exception ex)
@@ -74,12 +73,11 @@ public sealed class JsonStorageProvider(string baseDirectory) : IStorageProvider
     }
 
     public void Dispose()
-    {
-    }
+    { }
 
     private string Resolve(string identifier)
     {
-        var name = identifier.Trim();
+        string name = identifier.Trim();
         if (!name.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
             name += ".json";
         return Path.Combine(baseDirectory, name);
@@ -87,14 +85,14 @@ public sealed class JsonStorageProvider(string baseDirectory) : IStorageProvider
 
     private static void EnsureDir(string filePath)
     {
-        var dir = Path.GetDirectoryName(filePath);
+        string dir = Path.GetDirectoryName(filePath);
         if (!string.IsNullOrWhiteSpace(dir) && !Directory.Exists(dir))
             Directory.CreateDirectory(dir);
     }
 
     private static void WriteAtomic(string path, string content)
     {
-        var tmp = path + ".tmp";
+        string tmp = path + ".tmp";
         File.WriteAllText(tmp, content);
         try
         {
@@ -108,8 +106,8 @@ public sealed class JsonStorageProvider(string baseDirectory) : IStorageProvider
 
     private static async Task WriteAtomicAsync(string path, string content)
     {
-        var tmp = path + ".tmp";
-        using (var w = new StreamWriter(tmp, false))
+        string tmp = path + ".tmp";
+        using (StreamWriter w = new(tmp, false))
         {
             await w.WriteAsync(content);
         }
@@ -131,9 +129,7 @@ internal sealed class DateTimeConverter : JsonConverter<DateTime>
 
     public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        if (reader.TokenType == JsonTokenType.String &&
-            DateTime.TryParse(reader.GetString(), null,
-                DateTimeStyles.RoundtripKind, out var result))
+        if (reader.TokenType == JsonTokenType.String && DateTime.TryParse(reader.GetString(), null, DateTimeStyles.RoundtripKind, out DateTime result))
             return result;
         throw new JsonException($"Cannot convert '{reader.GetString()}' to DateTime.");
     }

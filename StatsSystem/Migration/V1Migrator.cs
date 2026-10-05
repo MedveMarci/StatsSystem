@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,26 +11,26 @@ internal static class V1Migrator
 {
     internal static string Repair(IReadOnlyDictionary<string, PlayerStats> snapshot)
     {
-        var sb = new StringBuilder();
-        var players = 0;
-        var fixes = 0;
+        StringBuilder sb = new();
+        int players = 0;
+        int fixes = 0;
 
-        foreach (var kvp in snapshot)
+        foreach (KeyValuePair<string, PlayerStats> kvp in snapshot)
         {
-            var userId = kvp.Key;
-            var stats = kvp.Value;
+            string userId = kvp.Key;
+            PlayerStats stats = kvp.Value;
             if (stats == null) continue;
 
-            var playerFixes = new List<string>();
+            List<string> playerFixes = new();
 
-            foreach (var kv in stats.DailyCounters)
+            foreach (KeyValuePair<string, ConcurrentDictionary<string, long>> kv in stats.DailyCounters)
             {
-                var key = kv.Key;
-                var perDay = kv.Value;
+                string key = kv.Key;
+                ConcurrentDictionary<string, long> perDay = kv.Value;
                 if (perDay == null || perDay.Count == 0) continue;
 
-                var dailyTotal = perDay.Values.Sum();
-                var current = stats.GetCounter(key);
+                long dailyTotal = perDay.Values.Sum();
+                long current = stats.GetCounter(key);
 
                 if (dailyTotal > current)
                 {
@@ -42,7 +43,7 @@ internal static class V1Migrator
             if (playerFixes.Count > 0)
             {
                 sb.AppendLine($"Player {userId}:");
-                foreach (var line in playerFixes) sb.AppendLine(line);
+                foreach (string line in playerFixes) sb.AppendLine(line);
                 players++;
             }
         }

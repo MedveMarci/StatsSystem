@@ -9,20 +9,24 @@ namespace StatsSystem.API;
 public sealed class PlayerStats
 {
     public ConcurrentDictionary<string, long> Counters { get; set; } = new();
+
     public ConcurrentDictionary<string, TimeSpan> Durations { get; set; } = new();
+
     public ConcurrentDictionary<string, DateTime> Timestamps { get; set; } = new();
+
     public ConcurrentDictionary<string, ConcurrentDictionary<string, long>> DailyCounters { get; set; } = new();
+
     public ConcurrentDictionary<string, ConcurrentDictionary<string, TimeSpan>> DailyDurations { get; set; } = new();
 
     public long GetCounter(string key)
     {
-        return Counters.TryGetValue(key, out var v) ? v : 0L;
+        return Counters.TryGetValue(key, out long v) ? v : 0L;
     }
 
     public void SetCounter(string key, long value)
     {
         Counters[key] = value;
-        var perDay = DailyCounters.GetOrAdd(key, _ => new ConcurrentDictionary<string, long>());
+        ConcurrentDictionary<string, long> perDay = DailyCounters.GetOrAdd(key, _ => new ConcurrentDictionary<string, long>());
         perDay[DateTime.UtcNow.ToString("yyyy-MM-dd")] = value;
     }
 
@@ -34,7 +38,7 @@ public sealed class PlayerStats
 
     public TimeSpan GetDuration(string key)
     {
-        return Durations.TryGetValue(key, out var v) ? v : TimeSpan.Zero;
+        return Durations.TryGetValue(key, out TimeSpan v) ? v : TimeSpan.Zero;
     }
 
     public void SetDuration(string key, TimeSpan value)
@@ -50,7 +54,7 @@ public sealed class PlayerStats
 
     public DateTime GetTimestamp(string key)
     {
-        return Timestamps.TryGetValue(key, out var v) ? v : DateTime.MinValue;
+        return Timestamps.TryGetValue(key, out DateTime v) ? v : DateTime.MinValue;
     }
 
     public void SetTimestamp(string key, DateTime value)
@@ -60,13 +64,13 @@ public sealed class PlayerStats
 
     public bool TrySetTimestampOnce(string key, DateTime value)
     {
-        var utc = value.Kind == DateTimeKind.Local ? value.ToUniversalTime() : value;
+        DateTime utc = value.Kind == DateTimeKind.Local ? value.ToUniversalTime() : value;
         return Timestamps.TryAdd(key, utc);
     }
 
     public bool RemoveKey(string key)
     {
-        var removed = false;
+        bool removed = false;
         removed |= Counters.TryRemove(key, out _);
         removed |= Durations.TryRemove(key, out _);
         removed |= Timestamps.TryRemove(key, out _);
@@ -77,32 +81,29 @@ public sealed class PlayerStats
 
     public IEnumerable<string> GetAllKeys()
     {
-        return Counters.Keys
-            .Concat(Durations.Keys)
-            .Concat(Timestamps.Keys)
-            .Distinct(StringComparer.OrdinalIgnoreCase);
+        return Counters.Keys.Concat(Durations.Keys).Concat(Timestamps.Keys).Distinct(StringComparer.OrdinalIgnoreCase);
     }
 
     internal long SumLastDays(string key, int days)
     {
-        if (!DailyCounters.TryGetValue(key, out var perDay)) return 0L;
-        var today = DateTime.UtcNow.Date;
-        var from = today.AddDays(-(days - 1));
+        if (!DailyCounters.TryGetValue(key, out ConcurrentDictionary<string, long> perDay)) return 0L;
+        DateTime today = DateTime.UtcNow.Date;
+        DateTime from = today.AddDays(-(days - 1));
         long total = 0;
-        foreach (var kv in perDay)
-            if (DateTime.TryParse(kv.Key, out var d) && d >= from && d <= today)
+        foreach (KeyValuePair<string, long> kv in perDay)
+            if (DateTime.TryParse(kv.Key, out DateTime d) && d >= from && d <= today)
                 total += kv.Value;
         return total;
     }
 
     internal TimeSpan SumLastDaysDuration(string key, int days)
     {
-        if (!DailyDurations.TryGetValue(key, out var perDay)) return TimeSpan.Zero;
-        var today = DateTime.UtcNow.Date;
-        var from = today.AddDays(-(days - 1));
-        var total = TimeSpan.Zero;
-        foreach (var kv in perDay)
-            if (DateTime.TryParse(kv.Key, out var d) && d >= from && d <= today)
+        if (!DailyDurations.TryGetValue(key, out ConcurrentDictionary<string, TimeSpan> perDay)) return TimeSpan.Zero;
+        DateTime today = DateTime.UtcNow.Date;
+        DateTime from = today.AddDays(-(days - 1));
+        TimeSpan total = TimeSpan.Zero;
+        foreach (KeyValuePair<string, TimeSpan> kv in perDay)
+            if (DateTime.TryParse(kv.Key, out DateTime d) && d >= from && d <= today)
                 total += kv.Value;
         return total;
     }
@@ -111,8 +112,8 @@ public sealed class PlayerStats
     {
         try
         {
-            var today = DateTime.UtcNow.ToString("yyyy-MM-dd");
-            var perDay = DailyCounters.GetOrAdd(key, _ => new ConcurrentDictionary<string, long>());
+            string today = DateTime.UtcNow.ToString("yyyy-MM-dd");
+            ConcurrentDictionary<string, long> perDay = DailyCounters.GetOrAdd(key, _ => new ConcurrentDictionary<string, long>());
             perDay.AddOrUpdate(today, amount, (_, old) => old + amount);
             PruneDaily(perDay);
         }
@@ -126,8 +127,8 @@ public sealed class PlayerStats
     {
         try
         {
-            var today = DateTime.UtcNow.ToString("yyyy-MM-dd");
-            var perDay = DailyDurations.GetOrAdd(key, _ => new ConcurrentDictionary<string, TimeSpan>());
+            string today = DateTime.UtcNow.ToString("yyyy-MM-dd");
+            ConcurrentDictionary<string, TimeSpan> perDay = DailyDurations.GetOrAdd(key, _ => new ConcurrentDictionary<string, TimeSpan>());
             perDay.AddOrUpdate(today, delta, (_, old) => old + delta);
             PruneDaily(perDay);
         }
@@ -139,16 +140,16 @@ public sealed class PlayerStats
 
     private static void PruneDaily<T>(ConcurrentDictionary<string, T> perDay)
     {
-        var threshold = GetPruneThreshold();
+        DateTime threshold = GetPruneThreshold();
         if (threshold == DateTime.MinValue) return;
-        foreach (var k in perDay.Keys)
-            if (DateTime.TryParse(k, out var d) && d < threshold)
+        foreach (string k in perDay.Keys)
+            if (DateTime.TryParse(k, out DateTime d) && d < threshold)
                 perDay.TryRemove(k, out _);
     }
 
     private static DateTime GetPruneThreshold()
     {
-        var cfg = StatsSystemPlugin.Singleton?.Config;
+        Config cfg = StatsSystemPlugin.Singleton?.Config;
         if (cfg?.LastDays is not { Count: > 0 }) return DateTime.MinValue;
         return DateTime.UtcNow.Date.AddDays(-(cfg.LastDays.Max() + 2));
     }

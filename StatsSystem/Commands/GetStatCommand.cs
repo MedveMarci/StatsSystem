@@ -14,12 +14,14 @@ namespace StatsSystem.Commands;
 public sealed class GetStatCommand : ICommand
 {
     public string Command => "getstat";
+
     public string[] Aliases { get; } = ["gs"];
+
     public string Description => "Shows your stats, or another player's. Usage: .getstat [player|userId]";
 
     public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
     {
-        var requester = Player.Get(sender);
+        Player requester = Player.Get(sender);
 
         Player targetPlayer = null;
         PlayerStats stats = null;
@@ -28,7 +30,7 @@ public sealed class GetStatCommand : ICommand
 
         if (arguments.Count > 0)
         {
-            var arg = arguments.At(0);
+            string arg = arguments.At(0);
             targetPlayer = Player.Get(arg) ?? Player.GetByDisplayName(arg) ?? Player.GetByNickname(arg);
 
             if (targetPlayer != null)
@@ -75,7 +77,7 @@ public sealed class GetStatCommand : ICommand
         if (StatsSystemPlugin.Singleton.Config.PlaytimeTracking && lookupId != null)
             EventHandler.FlushAndResetPlayer(lookupId);
 
-        var lines = new List<string> { $"=== Stats: {displayName} ===" };
+        List<string> lines = new() { $"=== Stats: {displayName} ===" };
 
         if (stats.Counters.Count == 0 && stats.Durations.Count == 0)
         {
@@ -83,28 +85,28 @@ public sealed class GetStatCommand : ICommand
         }
         else
         {
-            foreach (var kv in stats.Counters.OrderBy(k => k.Key))
+            foreach (KeyValuePair<string, long> kv in stats.Counters.OrderBy(k => k.Key))
                 lines.Add($"  {kv.Key}: {kv.Value}");
-            foreach (var kv in stats.Durations.OrderBy(k => k.Key))
+            foreach (KeyValuePair<string, TimeSpan> kv in stats.Durations.OrderBy(k => k.Key))
                 lines.Add($"  {kv.Key}: {FormatTime(kv.Value)}");
         }
 
-        var lastDaysCfg = StatsSystemPlugin.Singleton?.Config?.LastDays;
+        List<int> lastDaysCfg = StatsSystemPlugin.Singleton?.Config?.LastDays;
         if (lastDaysCfg is { Count: > 0 } && (stats.Counters.Count > 0 || stats.Durations.Count > 0))
         {
-            var periods = lastDaysCfg.Distinct().Where(d => d > 0).OrderBy(d => d).ToList();
-            foreach (var days in periods)
+            List<int> periods = lastDaysCfg.Distinct().Where(d => d > 0).OrderBy(d => d).ToList();
+            foreach (int days in periods)
             {
                 lines.Add($"\n--- Last {days} days ---");
-                foreach (var kv in stats.Counters.OrderBy(k => k.Key))
+                foreach (KeyValuePair<string, long> kv in stats.Counters.OrderBy(k => k.Key))
                 {
-                    var val = StatsSystemPlugin.Stats.GetLastDaysCounter(lookupId, kv.Key, days);
+                    long val = StatsSystemPlugin.Stats.GetLastDaysCounter(lookupId, kv.Key, days);
                     lines.Add($"  {kv.Key}: {val}");
                 }
 
-                foreach (var kv in stats.Durations.OrderBy(k => k.Key))
+                foreach (KeyValuePair<string, TimeSpan> kv in stats.Durations.OrderBy(k => k.Key))
                 {
-                    var val = StatsSystemPlugin.Stats.GetLastDaysDuration(lookupId, kv.Key, days);
+                    TimeSpan val = StatsSystemPlugin.Stats.GetLastDaysDuration(lookupId, kv.Key, days);
                     if (val > TimeSpan.Zero) lines.Add($"  {kv.Key}: {FormatTime(val)}");
                 }
             }

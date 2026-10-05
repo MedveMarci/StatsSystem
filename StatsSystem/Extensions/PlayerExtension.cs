@@ -37,8 +37,7 @@ public static class PlayerExtension
             case short s: StatsSystemPlugin.Stats.SetCounter(player, key, s, file); break;
             case byte b: StatsSystemPlugin.Stats.SetCounter(player, key, b, file); break;
             default:
-                throw new ArgumentException(
-                    $"Unsupported type '{typeof(T).Name}' for stat '{key}'. Use a numeric type or TimeSpan.");
+                throw new ArgumentException($"Unsupported type '{typeof(T).Name}' for stat '{key}'. Use a numeric type or TimeSpan.");
         }
     }
 
@@ -52,8 +51,7 @@ public static class PlayerExtension
             case short s: StatsSystemPlugin.Stats.SetCounter(userId, key, s, file); break;
             case byte b: StatsSystemPlugin.Stats.SetCounter(userId, key, b, file); break;
             default:
-                throw new ArgumentException(
-                    $"Unsupported type '{typeof(T).Name}' for stat '{key}'. Use a numeric type or TimeSpan.");
+                throw new ArgumentException($"Unsupported type '{typeof(T).Name}' for stat '{key}'. Use a numeric type or TimeSpan.");
         }
     }
 
@@ -62,7 +60,7 @@ public static class PlayerExtension
         if (typeof(T) == typeof(TimeSpan))
             return (T)(object)StatsSystemPlugin.Stats.GetDuration(player, key, file);
 
-        var v = StatsSystemPlugin.Stats.GetCounter(player, key, file);
+        long v = StatsSystemPlugin.Stats.GetCounter(player, key, file);
         return CastCounter<T>(v, key);
     }
 
@@ -71,7 +69,7 @@ public static class PlayerExtension
         if (typeof(T) == typeof(TimeSpan))
             return (T)(object)StatsSystemPlugin.Stats.GetDuration(userId, key, file);
 
-        var v = StatsSystemPlugin.Stats.GetCounter(userId, key, file);
+        long v = StatsSystemPlugin.Stats.GetCounter(userId, key, file);
         return CastCounter<T>(v, key);
     }
 
@@ -85,8 +83,7 @@ public static class PlayerExtension
             case short s: StatsSystemPlugin.Stats.IncrementCounter(player, key, s, file); break;
             case byte b: StatsSystemPlugin.Stats.IncrementCounter(player, key, b, file); break;
             default:
-                throw new ArgumentException(
-                    $"Unsupported type '{typeof(T).Name}' for stat '{key}'. Use a numeric type or TimeSpan.");
+                throw new ArgumentException($"Unsupported type '{typeof(T).Name}' for stat '{key}'. Use a numeric type or TimeSpan.");
         }
     }
 
@@ -100,8 +97,7 @@ public static class PlayerExtension
             case short s: StatsSystemPlugin.Stats.IncrementCounter(userId, key, s, file); break;
             case byte b: StatsSystemPlugin.Stats.IncrementCounter(userId, key, b, file); break;
             default:
-                throw new ArgumentException(
-                    $"Unsupported type '{typeof(T).Name}' for stat '{key}'. Use a numeric type or TimeSpan.");
+                throw new ArgumentException($"Unsupported type '{typeof(T).Name}' for stat '{key}'. Use a numeric type or TimeSpan.");
         }
     }
 
@@ -182,9 +178,7 @@ public static class PlayerExtension
 
     public static long GetLastDaysCounter(this string userId, string key, int days, string file = null)
     {
-        return string.IsNullOrWhiteSpace(userId)
-            ? 0L
-            : StatsSystemPlugin.Stats.GetLastDaysCounter(userId, key, days, file);
+        return string.IsNullOrWhiteSpace(userId) ? 0L : StatsSystemPlugin.Stats.GetLastDaysCounter(userId, key, days, file);
     }
 
     public static TimeSpan GetLastDaysDuration(this Player player, string key, int days, string file = null)
@@ -194,28 +188,24 @@ public static class PlayerExtension
 
     public static TimeSpan GetLastDaysDuration(this string userId, string key, int days, string file = null)
     {
-        return string.IsNullOrWhiteSpace(userId)
-            ? TimeSpan.Zero
-            : StatsSystemPlugin.Stats.GetLastDaysDuration(userId, key, days, file);
+        return string.IsNullOrWhiteSpace(userId) ? TimeSpan.Zero : StatsSystemPlugin.Stats.GetLastDaysDuration(userId, key, days, file);
     }
 
-    public static Dictionary<int, long> GetConfiguredLastDaysCounters(this Player player, string key,
-        string file = null)
+    public static Dictionary<int, long> GetConfiguredLastDaysCounters(this Player player, string key, string file = null)
     {
-        var result = new Dictionary<int, long>();
-        var days = StatsSystemPlugin.Singleton?.Config?.LastDays;
+        Dictionary<int, long> result = new();
+        List<int> days = StatsSystemPlugin.Singleton?.Config?.LastDays;
         if (days == null || player == null) return result;
-        foreach (var d in days) result[d] = StatsSystemPlugin.Stats.GetLastDaysCounter(player, key, d, file);
+        foreach (int d in days) result[d] = StatsSystemPlugin.Stats.GetLastDaysCounter(player, key, d, file);
         return result;
     }
 
-    public static Dictionary<int, long> GetConfiguredLastDaysCounters(this string userId, string key,
-        string file = null)
+    public static Dictionary<int, long> GetConfiguredLastDaysCounters(this string userId, string key, string file = null)
     {
-        var result = new Dictionary<int, long>();
-        var days = StatsSystemPlugin.Singleton?.Config?.LastDays;
+        Dictionary<int, long> result = new();
+        List<int> days = StatsSystemPlugin.Singleton?.Config?.LastDays;
         if (days == null || string.IsNullOrWhiteSpace(userId)) return result;
-        foreach (var d in days) result[d] = StatsSystemPlugin.Stats.GetLastDaysCounter(userId, key, d, file);
+        foreach (int d in days) result[d] = StatsSystemPlugin.Stats.GetLastDaysCounter(userId, key, d, file);
         return result;
     }
 

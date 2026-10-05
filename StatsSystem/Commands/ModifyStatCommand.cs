@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using CommandSystem;
 using LabApi.Features.Permissions;
 using LabApi.Features.Wrappers;
 using NorthwoodLib.Pools;
+using StatsSystem.API;
 using Utils;
 
 namespace StatsSystem.Commands;
@@ -12,7 +14,9 @@ namespace StatsSystem.Commands;
 public sealed class AddStatCommand : ModifyStatBase
 {
     public override string Command => "addstat";
+
     public override string[] Aliases => [];
+
     public override string Description => "Increases a player's stat. Usage: addstat <player> <statKey> <amount>";
 
     protected override long GetDelta(long amount)
@@ -25,7 +29,9 @@ public sealed class AddStatCommand : ModifyStatBase
 public sealed class RemoveStatCommand : ModifyStatBase
 {
     public override string Command => "removestat";
+
     public override string[] Aliases => [];
+
     public override string Description => "Decreases a player's stat. Usage: removestat <player> <statKey> <amount>";
 
     protected override long GetDelta(long amount)
@@ -38,8 +44,12 @@ public sealed class RemoveStatCommand : ModifyStatBase
 public sealed class SetStatCommand : ICommand, IUsageProvider
 {
     public string Command => "setstat";
+
     public string[] Aliases => [];
+
     public string Description => "Sets a player's stat to an exact value. Usage: setstat <player> <statKey> <value>";
+
+    public string[] Usage => ["%player%", "<statKey>", "<value>"];
 
     public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
     {
@@ -50,11 +60,11 @@ public sealed class SetStatCommand : ICommand, IUsageProvider
             return false;
         }
 
-        var hubs = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out var remaining);
-        var hasOnline = hubs is { Count: > 0 };
+        List<ReferenceHub> hubs = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out string[] remaining);
+        bool hasOnline = hubs is { Count: > 0 };
 
-        var statKey = hasOnline ? remaining?[0] ?? string.Empty : arguments.At(1);
-        var valueRaw = hasOnline ? remaining?[1] ?? string.Empty : arguments.At(2);
+        string statKey = hasOnline ? remaining?[0] ?? string.Empty : arguments.At(1);
+        string valueRaw = hasOnline ? remaining?[1] ?? string.Empty : arguments.At(2);
 
         if (string.IsNullOrEmpty(statKey) || string.IsNullOrEmpty(valueRaw))
         {
@@ -62,7 +72,7 @@ public sealed class SetStatCommand : ICommand, IUsageProvider
             return false;
         }
 
-        if (!long.TryParse(valueRaw, out var value))
+        if (!long.TryParse(valueRaw, out long value))
         {
             response = "Value must be an integer.";
             return false;
@@ -72,38 +82,39 @@ public sealed class SetStatCommand : ICommand, IUsageProvider
         {
             response = ModifyStatHelper.ApplyToOnline(hubs, p =>
             {
-                if (!StatsSystemPlugin.Stats.TryGetOrCreateStats(p, out var s)) return null;
-                var old = s.GetCounter(statKey);
+                if (!StatsSystemPlugin.Stats.TryGetOrCreateStats(p, out PlayerStats s)) return null;
+                long old = s.GetCounter(statKey);
                 s.SetCounter(statKey, value);
                 return $"{p.Nickname}: '{statKey}' set {old} → {value}";
             });
             return response != "No players were affected.";
         }
 
-        var query = arguments.At(0);
-        if (!StatsSystemPlugin.Stats.TryGetOrCreateStats(query, out var stats))
+        string query = arguments.At(0);
+        if (!StatsSystemPlugin.Stats.TryGetOrCreateStats(query, out PlayerStats stats))
         {
             response = $"Could not find or create stats for '{query}'.";
             return false;
         }
 
-        var oldVal = stats.GetCounter(statKey);
+        long oldVal = stats.GetCounter(statKey);
         stats.SetCounter(statKey, value);
         response = $"{query}: '{statKey}' set {oldVal} → {value}";
         return true;
     }
-
-    public string[] Usage => ["%player%", "<statKey>", "<value>"];
 }
 
 [CommandHandler(typeof(RemoteAdminCommandHandler))]
 public sealed class DeleteStatCommand : ICommand, IUsageProvider
 {
     public string Command => "deletestat";
+
     public string[] Aliases => [];
 
     public string Description =>
         "Removes a stat key entirely from a player's data. Usage: deletestat <userId> <statKey>";
+
+    public string[] Usage => ["<userId>", "<statKey>"];
 
     public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
     {
@@ -114,8 +125,8 @@ public sealed class DeleteStatCommand : ICommand, IUsageProvider
             return false;
         }
 
-        var userId = arguments.At(0);
-        var statKey = arguments.At(1);
+        string userId = arguments.At(0);
+        string statKey = arguments.At(1);
 
         if (!StatsSystemPlugin.Stats.DeleteStatKey(userId, statKey))
         {
@@ -126,15 +137,17 @@ public sealed class DeleteStatCommand : ICommand, IUsageProvider
         response = $"Deleted stat '{statKey}' from '{userId}'.";
         return true;
     }
-
-    public string[] Usage => ["<userId>", "<statKey>"];
 }
 
 public abstract class ModifyStatBase : ICommand, IUsageProvider
 {
     public abstract string Command { get; }
+
     public abstract string[] Aliases { get; }
+
     public abstract string Description { get; }
+
+    public string[] Usage => ["%player%", "<statKey>", "<amount>"];
 
     public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
     {
@@ -145,11 +158,11 @@ public abstract class ModifyStatBase : ICommand, IUsageProvider
             return false;
         }
 
-        var hubs = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out var remaining);
-        var hasOnline = hubs is { Count: > 0 };
+        List<ReferenceHub> hubs = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out string[] remaining);
+        bool hasOnline = hubs is { Count: > 0 };
 
-        var statKey = hasOnline ? remaining?[0] ?? string.Empty : arguments.At(1);
-        var amountRaw = hasOnline ? remaining?[1] ?? string.Empty : arguments.At(2);
+        string statKey = hasOnline ? remaining?[0] ?? string.Empty : arguments.At(1);
+        string amountRaw = hasOnline ? remaining?[1] ?? string.Empty : arguments.At(2);
 
         if (string.IsNullOrEmpty(statKey) || string.IsNullOrEmpty(amountRaw))
         {
@@ -157,41 +170,39 @@ public abstract class ModifyStatBase : ICommand, IUsageProvider
             return false;
         }
 
-        if (!long.TryParse(amountRaw, out var amount) || amount < 0)
+        if (!long.TryParse(amountRaw, out long amount) || amount < 0)
         {
             response = "Amount must be a non-negative integer.";
             return false;
         }
 
-        var delta = GetDelta(amount);
-        var action = delta >= 0 ? "increased" : "decreased";
+        long delta = GetDelta(amount);
+        string action = delta >= 0 ? "increased" : "decreased";
 
         if (hasOnline)
         {
             response = ModifyStatHelper.ApplyToOnline(hubs, p =>
             {
-                if (!StatsSystemPlugin.Stats.TryGetOrCreateStats(p, out var s)) return null;
-                var old = s.GetCounter(statKey);
+                if (!StatsSystemPlugin.Stats.TryGetOrCreateStats(p, out PlayerStats s)) return null;
+                long old = s.GetCounter(statKey);
                 s.IncrementCounter(statKey, delta);
                 return $"{p.Nickname}: '{statKey}' {action} {old} → {old + delta}";
             });
             return response != "No players were affected.";
         }
 
-        var query = arguments.At(0);
-        if (!StatsSystemPlugin.Stats.TryGetOrCreateStats(query, out var stats))
+        string query = arguments.At(0);
+        if (!StatsSystemPlugin.Stats.TryGetOrCreateStats(query, out PlayerStats stats))
         {
             response = $"Player '{query}' not found and no saved stats exist for that identifier.";
             return false;
         }
 
-        var oldVal = stats.GetCounter(statKey);
+        long oldVal = stats.GetCounter(statKey);
         stats.IncrementCounter(statKey, delta);
         response = $"{query}: '{statKey}' {action} {oldVal} → {oldVal + delta}";
         return true;
     }
-
-    public string[] Usage => ["%player%", "<statKey>", "<amount>"];
 
     protected abstract long GetDelta(long amount);
 }
@@ -200,7 +211,7 @@ internal static class ModifyStatHelper
 {
     internal static bool CheckPermission(ICommandSender sender, out string response)
     {
-        var issuer = Player.Get(sender);
+        Player issuer = Player.Get(sender);
         if (issuer == null)
         {
             response = "This command can only be used as a player.";
@@ -219,20 +230,20 @@ internal static class ModifyStatHelper
 
     internal static string ApplyToOnline(List<ReferenceHub> hubs, Func<Player, string> action)
     {
-        var sb = StringBuilderPool.Shared.Rent();
-        var affected = 0;
-        foreach (var hub in hubs)
+        StringBuilder sb = StringBuilderPool.Shared.Rent();
+        int affected = 0;
+        foreach (ReferenceHub hub in hubs)
         {
-            var p = Player.Get(hub);
+            Player p = Player.Get(hub);
             if (p == null) continue;
-            var line = action(p);
+            string line = action(p);
             if (line == null) continue;
             if (affected > 0) sb.Append('\n');
             sb.Append(line);
             affected++;
         }
 
-        var result = StringBuilderPool.Shared.ToStringReturn(sb);
+        string result = StringBuilderPool.Shared.ToStringReturn(sb);
         return affected > 0 ? result : "No players were affected.";
     }
 }
