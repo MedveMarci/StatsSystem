@@ -1,16 +1,9 @@
 # StatsSystem
 
-![Downloads](https://img.shields.io/github/downloads/MedveMarci/StatsSystem/total)
-![Version](https://img.shields.io/badge/version-2.0.0-blue)
-![Framework](https://img.shields.io/badge/.NET-4.8-purple)
-![License](https://img.shields.io/badge/license-MIT-green)
-<a href="https://github.com/KenleyundLeon/DeltaPatch"><img src="https://image2url.com/images/1759565889245-ff2e02c2-1f19-4f72-bc06-43a3b77fb4bd.png"></a>
+[![Version](https://img.shields.io/github/v/release/MedveMarci/StatsSystem?label=Version&color=d500ff)](https://github.com/MedveMarci/StatsSystem/releases/latest) [![LabAPI Version](https://img.shields.io/badge/LabAPI_Version-1.1.7-51f4ff)](https://github.com/northwood-studios/LabAPI/releases/tag/1.1.7) [![SCP:SL Version](https://img.shields.io/badge/SCP:SL_Version-14.2.7-e5b200)](https://store.steampowered.com/app/700330/SCP_Secret_Laboratory/) [![Downloads](https://img.shields.io/github/downloads/MedveMarci/StatsSystem/total?label=Downloads&color=ffbf00)](https://github.com/MedveMarci/StatsSystem/releases) [![License](https://img.shields.io/github/license/MedveMarci/StatsSystem?label=License&color=2ea44f)](LICENSE) [![DeltaPatch](https://image2url.com/images/1759565889245-ff2e02c2-1f19-4f72-bc06-43a3b77fb4bd.png)](https://github.com/KenleyundLeon/DeltaPatch)
 
-> **SCP: Secret Laboratory LabAPI plugin** for comprehensive, modular player statistics tracking.
-
-## Support
-
-<a href='https://discord.gg/KmpA8cfaSA'><img src='https://www.allkpop.com/upload/2021/01/content/262046/1611711962-discord-button.png' height="80"></a>
+An SCP: Secret Laboratory [LabAPI](https://github.com/northwood-studios/LabAPI) plugin for comprehensive, modular player
+statistics tracking.
 
 ---
 
@@ -31,8 +24,8 @@
 
 1. Download the latest `StatsSystem.dll` from [GitHub Releases](https://github.com/MedveMarci/StatsSystem/releases).
 2. Place the DLL in your server's folder.
+    - Windows: `%AppData%\SCP Secret Laboratory\LabAPI\plugins\global\`
     - Linux: `~/.config/SCP Secret Laboratory/LabAPI/plugins/global/`
-    - Windows: `%appdata%/SCP Secret Laboratory/LabAPI/plugins/global/`
 3. Start the server — a default `config.yml` is generated automatically.
 4. Adjust the config to your needs and reload.
 
@@ -42,8 +35,8 @@
 
 Configuration is located at:
 
-- Linux: `~/.config/SCP Secret Laboratory/LabAPI/configs/port/`
-- Windows: `%appdata%/SCP Secret Laboratory/LabAPI/configs/port/`
+- Windows: `%AppData%\SCP Secret Laboratory\LabAPI\configs\<port>\`
+- Linux: `~/.config/SCP Secret Laboratory/LabAPI/configs/<port>/`
 
 | Key                       | Default       | Description                               |
 |---------------------------|---------------|-------------------------------------------|
@@ -111,8 +104,8 @@ Configuration is located at:
 
 Stats are saved to:
 
-- Linux: `~/.config/SCP Secret Laboratory/LabAPI/configs/StatsSystem`
-- Windows: `%appdata%/SCP Secret Laboratory/LabAPI/configs/StatsSystem`
+- Windows: `%AppData%\SCP Secret Laboratory\LabAPI\configs\StatsSystem\`
+- Linux: `~/.config/SCP Secret Laboratory/LabAPI/configs/StatsSystem/`
 
 (or `player_stats.bin` when using Binary storage)
 
@@ -142,6 +135,14 @@ one.
 | `MicroHidKills` | Counter  | Kills with MicroHID            |
 | `TotalPlayTime` | Duration | Total time spent on server     |
 
+---
+
+## Support
+
+<a href="https://discord.gg/KmpA8cfaSA"><img src="https://www.allkpop.com/upload/2021/01/content/262046/1611711962-discord-button.png" height="80"></a>
+
+---
+
 ## Credits
 
-- Plugin developed by **MedveMarci**
+- Made by [MedveMarci](https://github.com/MedveMarci)

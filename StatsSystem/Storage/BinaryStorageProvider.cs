@@ -17,13 +17,13 @@ public sealed class BinaryStorageProvider(string baseDirectory) : IStorageProvid
 
     public IReadOnlyDictionary<string, PlayerStats> Load(string identifier)
     {
-        var path = Resolve(identifier);
+        string path = Resolve(identifier);
         LogManager.Debug($"[Binary] Loading from '{path}'...");
         try
         {
             if (!File.Exists(path)) return new Dictionary<string, PlayerStats>();
-            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            using var reader = new BinaryReader(fs, Encoding.UTF8, false);
+            using FileStream fs = new(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using BinaryReader reader = new(fs, Encoding.UTF8, false);
             return Deserialize(reader);
         }
         catch (Exception ex)
@@ -35,13 +35,13 @@ public sealed class BinaryStorageProvider(string baseDirectory) : IStorageProvid
 
     public void Save(string identifier, IReadOnlyDictionary<string, PlayerStats> data)
     {
-        var path = Resolve(identifier);
+        string path = Resolve(identifier);
         try
         {
             EnsureDir(path);
-            var tmp = path + ".tmp";
-            using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
-            using (var writer = new BinaryWriter(fs, Encoding.UTF8, false))
+            string tmp = path + ".tmp";
+            using (FileStream fs = new(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+            using (BinaryWriter writer = new(fs, Encoding.UTF8, false))
             {
                 Serialize(writer, data);
             }
@@ -60,8 +60,7 @@ public sealed class BinaryStorageProvider(string baseDirectory) : IStorageProvid
     }
 
     public void Dispose()
-    {
-    }
+    { }
 
     private static void Serialize(BinaryWriter w, IReadOnlyDictionary<string, PlayerStats> data)
     {
@@ -70,39 +69,39 @@ public sealed class BinaryStorageProvider(string baseDirectory) : IStorageProvid
         w.Write((byte)0);
         w.Write(data.Count);
 
-        foreach (var kvp in data)
+        foreach (KeyValuePair<string, PlayerStats> kvp in data)
         {
-            var userId = kvp.Key;
-            var stats = kvp.Value;
+            string userId = kvp.Key;
+            PlayerStats stats = kvp.Value;
             WriteString(w, userId);
 
             w.Write(checked((ushort)stats.Counters.Count));
-            foreach (var kv in stats.Counters)
+            foreach (KeyValuePair<string, long> kv in stats.Counters)
             {
                 WriteString(w, kv.Key);
                 w.Write(kv.Value);
             }
 
             w.Write(checked((ushort)stats.Durations.Count));
-            foreach (var kv in stats.Durations)
+            foreach (KeyValuePair<string, TimeSpan> kv in stats.Durations)
             {
                 WriteString(w, kv.Key);
                 w.Write(kv.Value.Ticks);
             }
 
             w.Write(checked((ushort)stats.Timestamps.Count));
-            foreach (var kv in stats.Timestamps)
+            foreach (KeyValuePair<string, DateTime> kv in stats.Timestamps)
             {
                 WriteString(w, kv.Key);
                 w.Write(kv.Value.ToBinary());
             }
 
             w.Write(checked((ushort)stats.DailyCounters.Count));
-            foreach (var kv in stats.DailyCounters)
+            foreach (KeyValuePair<string, ConcurrentDictionary<string, long>> kv in stats.DailyCounters)
             {
                 WriteString(w, kv.Key);
                 w.Write(checked((ushort)kv.Value.Count));
-                foreach (var day in kv.Value)
+                foreach (KeyValuePair<string, long> day in kv.Value)
                 {
                     w.Write(DateToOrdinal(day.Key));
                     w.Write(day.Value);
@@ -110,11 +109,11 @@ public sealed class BinaryStorageProvider(string baseDirectory) : IStorageProvid
             }
 
             w.Write(checked((ushort)stats.DailyDurations.Count));
-            foreach (var kv in stats.DailyDurations)
+            foreach (KeyValuePair<string, ConcurrentDictionary<string, TimeSpan>> kv in stats.DailyDurations)
             {
                 WriteString(w, kv.Key);
                 w.Write(checked((ushort)kv.Value.Count));
-                foreach (var day in kv.Value)
+                foreach (KeyValuePair<string, TimeSpan> day in kv.Value)
                 {
                     w.Write(DateToOrdinal(day.Key));
                     w.Write(day.Value.Ticks);
@@ -125,55 +124,54 @@ public sealed class BinaryStorageProvider(string baseDirectory) : IStorageProvid
 
     private static Dictionary<string, PlayerStats> Deserialize(BinaryReader r)
     {
-        var magic = r.ReadBytes(4);
-        if (magic.Length < 4 || magic[0] != Magic[0] || magic[1] != Magic[1] ||
-            magic[2] != Magic[2] || magic[3] != Magic[3])
+        byte[] magic = r.ReadBytes(4);
+        if (magic.Length < 4 || magic[0] != Magic[0] || magic[1] != Magic[1] || magic[2] != Magic[2] || magic[3] != Magic[3])
             throw new InvalidDataException("Not a valid SSBT file (bad magic bytes).");
 
-        var version = r.ReadByte();
+        byte version = r.ReadByte();
         r.ReadByte();
 
         if (version != Version)
             throw new InvalidDataException($"Unsupported SSBT version {version} (expected {Version}).");
 
-        var playerCount = r.ReadInt32();
-        var result = new Dictionary<string, PlayerStats>(playerCount, StringComparer.Ordinal);
+        int playerCount = r.ReadInt32();
+        Dictionary<string, PlayerStats> result = new(playerCount, StringComparer.Ordinal);
 
-        for (var i = 0; i < playerCount; i++)
+        for (int i = 0; i < playerCount; i++)
         {
-            var userId = ReadString(r);
-            var stats = new PlayerStats();
+            string userId = ReadString(r);
+            PlayerStats stats = new();
 
-            var counterCount = r.ReadUInt16();
-            for (var c = 0; c < counterCount; c++)
+            ushort counterCount = r.ReadUInt16();
+            for (int c = 0; c < counterCount; c++)
                 stats.Counters[ReadString(r)] = r.ReadInt64();
 
-            var durationCount = r.ReadUInt16();
-            for (var d = 0; d < durationCount; d++)
+            ushort durationCount = r.ReadUInt16();
+            for (int d = 0; d < durationCount; d++)
                 stats.Durations[ReadString(r)] = TimeSpan.FromTicks(r.ReadInt64());
 
-            var tsCount = r.ReadUInt16();
-            for (var t = 0; t < tsCount; t++)
+            ushort tsCount = r.ReadUInt16();
+            for (int t = 0; t < tsCount; t++)
                 stats.Timestamps[ReadString(r)] = DateTime.FromBinary(r.ReadInt64());
 
-            var dcKeyCount = r.ReadUInt16();
-            for (var k = 0; k < dcKeyCount; k++)
+            ushort dcKeyCount = r.ReadUInt16();
+            for (int k = 0; k < dcKeyCount; k++)
             {
-                var key = ReadString(r);
-                var perDay = new ConcurrentDictionary<string, long>(StringComparer.Ordinal);
-                var days = r.ReadUInt16();
-                for (var d = 0; d < days; d++)
+                string key = ReadString(r);
+                ConcurrentDictionary<string, long> perDay = new(StringComparer.Ordinal);
+                ushort days = r.ReadUInt16();
+                for (int d = 0; d < days; d++)
                     perDay[OrdinalToDate(r.ReadInt32())] = r.ReadInt64();
                 stats.DailyCounters[key] = perDay;
             }
 
-            var ddKeyCount = r.ReadUInt16();
-            for (var k = 0; k < ddKeyCount; k++)
+            ushort ddKeyCount = r.ReadUInt16();
+            for (int k = 0; k < ddKeyCount; k++)
             {
-                var key = ReadString(r);
-                var perDay = new ConcurrentDictionary<string, TimeSpan>(StringComparer.Ordinal);
-                var days = r.ReadUInt16();
-                for (var d = 0; d < days; d++)
+                string key = ReadString(r);
+                ConcurrentDictionary<string, TimeSpan> perDay = new(StringComparer.Ordinal);
+                ushort days = r.ReadUInt16();
+                for (int d = 0; d < days; d++)
                     perDay[OrdinalToDate(r.ReadInt32())] = TimeSpan.FromTicks(r.ReadInt64());
                 stats.DailyDurations[key] = perDay;
             }
@@ -186,20 +184,20 @@ public sealed class BinaryStorageProvider(string baseDirectory) : IStorageProvid
 
     private static void WriteString(BinaryWriter w, string value)
     {
-        var bytes = Encoding.UTF8.GetBytes(value);
+        byte[] bytes = Encoding.UTF8.GetBytes(value);
         w.Write(checked((ushort)bytes.Length));
         w.Write(bytes);
     }
 
     private static string ReadString(BinaryReader r)
     {
-        var len = r.ReadUInt16();
+        ushort len = r.ReadUInt16();
         return Encoding.UTF8.GetString(r.ReadBytes(len));
     }
 
     private static int DateToOrdinal(string dateStr)
     {
-        if (!DateTime.TryParse(dateStr, out var d)) return 0;
+        if (!DateTime.TryParse(dateStr, out DateTime d)) return 0;
         return (int)(d.Date.ToUniversalTime() - Epoch).TotalDays;
     }
 
@@ -210,7 +208,7 @@ public sealed class BinaryStorageProvider(string baseDirectory) : IStorageProvid
 
     private string Resolve(string identifier)
     {
-        var name = identifier.Trim();
+        string name = identifier.Trim();
         if (name.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
             name = name.Substring(0, name.Length - 5);
         if (!name.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
@@ -220,7 +218,7 @@ public sealed class BinaryStorageProvider(string baseDirectory) : IStorageProvid
 
     private static void EnsureDir(string filePath)
     {
-        var dir = Path.GetDirectoryName(filePath);
+        string dir = Path.GetDirectoryName(filePath);
         if (!string.IsNullOrWhiteSpace(dir) && !Directory.Exists(dir))
             Directory.CreateDirectory(dir);
     }

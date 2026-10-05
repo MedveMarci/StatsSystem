@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.Arguments.ServerEvents;
 using LabApi.Events.CustomHandlers;
@@ -43,8 +44,7 @@ internal sealed class EventHandler : CustomEventsHandler
 
     public override void OnPlayerJoined(PlayerJoinedEventArgs ev)
     {
-        if (Round.IsRoundStarted && !ev.Player.DoNotTrack &&
-            StatsSystemPlugin.Singleton.Config.PlaytimeTracking)
+        if (Round.IsRoundStarted && !ev.Player.DoNotTrack && StatsSystemPlugin.Singleton.Config.PlaytimeTracking)
         {
             SessionStartTimes[ev.Player.UserId] = DateTime.Now;
             LogManager.Debug($"Session started: {ev.Player.UserId}");
@@ -55,16 +55,15 @@ internal sealed class EventHandler : CustomEventsHandler
 
     public override void OnPlayerLeft(PlayerLeftEventArgs ev)
     {
-        if (!Round.IsRoundStarted || ev.Player?.UserId == null ||
-            ev.Player.DoNotTrack || !StatsSystemPlugin.Singleton.Config.PlaytimeTracking)
+        if (!Round.IsRoundStarted || ev.Player?.UserId == null || ev.Player.DoNotTrack || !StatsSystemPlugin.Singleton.Config.PlaytimeTracking)
         {
             base.OnPlayerLeft(ev);
             return;
         }
 
-        if (SessionStartTimes.TryRemove(ev.Player.UserId, out var start))
+        if (SessionStartTimes.TryRemove(ev.Player.UserId, out DateTime start))
         {
-            var elapsed = DateTime.Now - start;
+            TimeSpan elapsed = DateTime.Now - start;
             ev.Player.AddDuration("TotalPlayTime", elapsed);
             LogManager.Debug($"Playtime flushed for {ev.Player.UserId}: {elapsed.TotalSeconds:F0}s");
         }
@@ -80,9 +79,9 @@ internal sealed class EventHandler : CustomEventsHandler
             return;
         }
 
-        var cfg = StatsSystemPlugin.Singleton.Config;
-        var attacker = ev.Attacker;
-        var victim = ev.Player;
+        Config cfg = StatsSystemPlugin.Singleton.Config;
+        Player attacker = ev.Attacker;
+        Player victim = ev.Player;
 
         if (cfg.KillsTracking && attacker is { DoNotTrack: false })
             attacker.IncrementStat("Kills");
@@ -110,14 +109,7 @@ internal sealed class EventHandler : CustomEventsHandler
 
     public override void OnServerWaitingForPlayers()
     {
-        try
-        {
-            ApiManager.CheckForUpdates();
-        }
-        catch (Exception ex)
-        {
-            LogManager.Error($"Version check failed: {ex.Message}");
-        }
+        VersionManager.CheckForUpdates();
 
         base.OnServerWaitingForPlayers();
     }
@@ -134,7 +126,7 @@ internal sealed class EventHandler : CustomEventsHandler
     private static void RecordAllSessionStarts()
     {
         SessionStartTimes.Clear();
-        foreach (var player in Player.ReadyList)
+        foreach (Player player in Player.ReadyList)
         {
             if (player.DoNotTrack) continue;
             SessionStartTimes[player.UserId] = DateTime.Now;
@@ -144,14 +136,14 @@ internal sealed class EventHandler : CustomEventsHandler
 
     private static void FlushAllPlaytimes()
     {
-        var now = DateTime.Now;
-        foreach (var kvp in SessionStartTimes)
+        DateTime now = DateTime.Now;
+        foreach (KeyValuePair<string, DateTime> kvp in SessionStartTimes)
         {
-            var userId = kvp.Key;
-            var start = kvp.Value;
-            var player = Player.Get(userId);
+            string userId = kvp.Key;
+            DateTime start = kvp.Value;
+            Player player = Player.Get(userId);
             if (player == null || player.DoNotTrack) continue;
-            var elapsed = now - start;
+            TimeSpan elapsed = now - start;
             player.AddDuration("TotalPlayTime", elapsed);
             LogManager.Debug($"Playtime flushed for {userId}: {elapsed.TotalSeconds:F0}s");
         }
@@ -161,10 +153,10 @@ internal sealed class EventHandler : CustomEventsHandler
 
     internal static void FlushAndResetPlayer(string userId)
     {
-        if (!SessionStartTimes.TryGetValue(userId, out var start)) return;
-        var player = Player.Get(userId);
+        if (!SessionStartTimes.TryGetValue(userId, out DateTime start)) return;
+        Player player = Player.Get(userId);
         if (player == null || player.DoNotTrack) return;
-        var elapsed = DateTime.Now - start;
+        TimeSpan elapsed = DateTime.Now - start;
         player.AddDuration("TotalPlayTime", elapsed);
         SessionStartTimes[userId] = DateTime.Now;
     }

@@ -18,13 +18,6 @@ internal sealed class StatsRepository : IStatsProvider
 
     private IStorageProvider _storage;
 
-    internal StatsRepository(string defaultIdentifier, IStorageProvider storage)
-    {
-        _defaultId = defaultIdentifier;
-        _storage = storage;
-        _default = Load(defaultIdentifier);
-    }
-
     private IStorageProvider Storage
     {
         get
@@ -34,6 +27,13 @@ internal sealed class StatsRepository : IStatsProvider
                 return _storage;
             }
         }
+    }
+
+    internal StatsRepository(string defaultIdentifier, IStorageProvider storage)
+    {
+        _defaultId = defaultIdentifier;
+        _storage = storage;
+        _default = Load(defaultIdentifier);
     }
 
     public bool TryGetStats(Player player, out PlayerStats stats, string file = null)
@@ -72,7 +72,7 @@ internal sealed class StatsRepository : IStatsProvider
             return false;
         }
 
-        var online = Player.Get(userId);
+        Player online = Player.Get(userId);
         if (online != null) return TryGetOrCreateStats(online, out stats, file);
         stats = GetStore(file).GetOrAdd(userId, _ => new PlayerStats());
         return true;
@@ -80,112 +80,112 @@ internal sealed class StatsRepository : IStatsProvider
 
     public void IncrementCounter(Player player, string key, long amount = 1, string file = null)
     {
-        if (TryGetOrCreateStats(player, out var s, file)) s.IncrementCounter(key, amount);
+        if (TryGetOrCreateStats(player, out PlayerStats s, file)) s.IncrementCounter(key, amount);
     }
 
     public void IncrementCounter(string userId, string key, long amount = 1, string file = null)
     {
-        if (TryGetOrCreateStats(userId, out var s, file)) s.IncrementCounter(key, amount);
+        if (TryGetOrCreateStats(userId, out PlayerStats s, file)) s.IncrementCounter(key, amount);
     }
 
     public void SetCounter(Player player, string key, long value, string file = null)
     {
-        if (TryGetOrCreateStats(player, out var s, file)) s.SetCounter(key, value);
+        if (TryGetOrCreateStats(player, out PlayerStats s, file)) s.SetCounter(key, value);
     }
 
     public void SetCounter(string userId, string key, long value, string file = null)
     {
-        if (TryGetOrCreateStats(userId, out var s, file)) s.SetCounter(key, value);
+        if (TryGetOrCreateStats(userId, out PlayerStats s, file)) s.SetCounter(key, value);
     }
 
     public long GetCounter(Player player, string key, string file = null)
     {
-        return TryGetOrCreateStats(player, out var s, file) ? s.GetCounter(key) : 0L;
+        return TryGetOrCreateStats(player, out PlayerStats s, file) ? s.GetCounter(key) : 0L;
     }
 
     public long GetCounter(string userId, string key, string file = null)
     {
-        return TryGetOrCreateStats(userId, out var s, file) ? s.GetCounter(key) : 0L;
+        return TryGetOrCreateStats(userId, out PlayerStats s, file) ? s.GetCounter(key) : 0L;
     }
 
     public void AddDuration(Player player, string key, TimeSpan delta, string file = null)
     {
-        if (TryGetOrCreateStats(player, out var s, file)) s.AddDuration(key, delta);
+        if (TryGetOrCreateStats(player, out PlayerStats s, file)) s.AddDuration(key, delta);
     }
 
     public void AddDuration(string userId, string key, TimeSpan delta, string file = null)
     {
-        if (TryGetOrCreateStats(userId, out var s, file)) s.AddDuration(key, delta);
+        if (TryGetOrCreateStats(userId, out PlayerStats s, file)) s.AddDuration(key, delta);
     }
 
     public void SetDuration(Player player, string key, TimeSpan value, string file = null)
     {
-        if (TryGetOrCreateStats(player, out var s, file)) s.SetDuration(key, value);
+        if (TryGetOrCreateStats(player, out PlayerStats s, file)) s.SetDuration(key, value);
     }
 
     public void SetDuration(string userId, string key, TimeSpan value, string file = null)
     {
-        if (TryGetOrCreateStats(userId, out var s, file)) s.SetDuration(key, value);
+        if (TryGetOrCreateStats(userId, out PlayerStats s, file)) s.SetDuration(key, value);
     }
 
     public TimeSpan GetDuration(Player player, string key, string file = null)
     {
-        return TryGetOrCreateStats(player, out var s, file) ? s.GetDuration(key) : TimeSpan.Zero;
+        return TryGetOrCreateStats(player, out PlayerStats s, file) ? s.GetDuration(key) : TimeSpan.Zero;
     }
 
     public TimeSpan GetDuration(string userId, string key, string file = null)
     {
-        return TryGetOrCreateStats(userId, out var s, file) ? s.GetDuration(key) : TimeSpan.Zero;
+        return TryGetOrCreateStats(userId, out PlayerStats s, file) ? s.GetDuration(key) : TimeSpan.Zero;
     }
 
     public void SetTimestamp(Player player, string key, DateTime value, string file = null)
     {
-        if (TryGetOrCreateStats(player, out var s, file)) s.SetTimestamp(key, value);
+        if (TryGetOrCreateStats(player, out PlayerStats s, file)) s.SetTimestamp(key, value);
     }
 
     public void SetTimestamp(string userId, string key, DateTime value, string file = null)
     {
-        if (TryGetOrCreateStats(userId, out var s, file)) s.SetTimestamp(key, value);
+        if (TryGetOrCreateStats(userId, out PlayerStats s, file)) s.SetTimestamp(key, value);
     }
 
     public bool SetTimestampOnce(Player player, string key, DateTime value, string file = null)
     {
-        return TryGetOrCreateStats(player, out var s, file) && s.TrySetTimestampOnce(key, value);
+        return TryGetOrCreateStats(player, out PlayerStats s, file) && s.TrySetTimestampOnce(key, value);
     }
 
     public bool SetTimestampOnce(string userId, string key, DateTime value, string file = null)
     {
-        return TryGetOrCreateStats(userId, out var s, file) && s.TrySetTimestampOnce(key, value);
+        return TryGetOrCreateStats(userId, out PlayerStats s, file) && s.TrySetTimestampOnce(key, value);
     }
 
     public DateTime GetTimestamp(Player player, string key, string file = null)
     {
-        return TryGetOrCreateStats(player, out var s, file) ? s.GetTimestamp(key) : DateTime.MinValue;
+        return TryGetOrCreateStats(player, out PlayerStats s, file) ? s.GetTimestamp(key) : DateTime.MinValue;
     }
 
     public DateTime GetTimestamp(string userId, string key, string file = null)
     {
-        return TryGetOrCreateStats(userId, out var s, file) ? s.GetTimestamp(key) : DateTime.MinValue;
+        return TryGetOrCreateStats(userId, out PlayerStats s, file) ? s.GetTimestamp(key) : DateTime.MinValue;
     }
 
     public long GetLastDaysCounter(Player player, string key, int days, string file = null)
     {
-        return TryGetOrCreateStats(player, out var s, file) ? s.SumLastDays(key, days) : 0L;
+        return TryGetOrCreateStats(player, out PlayerStats s, file) ? s.SumLastDays(key, days) : 0L;
     }
 
     public long GetLastDaysCounter(string userId, string key, int days, string file = null)
     {
-        return TryGetOrCreateStats(userId, out var s, file) ? s.SumLastDays(key, days) : 0L;
+        return TryGetOrCreateStats(userId, out PlayerStats s, file) ? s.SumLastDays(key, days) : 0L;
     }
 
     public TimeSpan GetLastDaysDuration(Player player, string key, int days, string file = null)
     {
-        return TryGetOrCreateStats(player, out var s, file) ? s.SumLastDaysDuration(key, days) : TimeSpan.Zero;
+        return TryGetOrCreateStats(player, out PlayerStats s, file) ? s.SumLastDaysDuration(key, days) : TimeSpan.Zero;
     }
 
     public TimeSpan GetLastDaysDuration(string userId, string key, int days, string file = null)
     {
-        return TryGetOrCreateStats(userId, out var s, file) ? s.SumLastDaysDuration(key, days) : TimeSpan.Zero;
+        return TryGetOrCreateStats(userId, out PlayerStats s, file) ? s.SumLastDaysDuration(key, days) : TimeSpan.Zero;
     }
 
     public IReadOnlyDictionary<string, PlayerStats> GetAllStatsSnapshot(string file = null)
@@ -200,28 +200,28 @@ internal sealed class StatsRepository : IStatsProvider
 
     public bool DeleteStatKey(string userId, string key, string file = null)
     {
-        return TryGetStats(userId, out var s, file) && s.RemoveKey(key);
+        return TryGetStats(userId, out PlayerStats s, file) && s.RemoveKey(key);
     }
 
     public void Save()
     {
-        var provider = Storage;
+        IStorageProvider provider = Storage;
         provider.Save(_defaultId, _default);
-        foreach (var kv in _extra) provider.Save(kv.Key, kv.Value);
+        foreach (KeyValuePair<string, ConcurrentDictionary<string, PlayerStats>> kv in _extra) provider.Save(kv.Key, kv.Value);
     }
 
     public void Reload()
     {
-        var loaded = Load(_defaultId);
+        ConcurrentDictionary<string, PlayerStats> loaded = Load(_defaultId);
         _default.Clear();
-        foreach (var kv in loaded) _default[kv.Key] = kv.Value;
+        foreach (KeyValuePair<string, PlayerStats> kv in loaded) _default[kv.Key] = kv.Value;
 
-        foreach (var id in _extra.Keys.ToArray())
+        foreach (string id in _extra.Keys.ToArray())
         {
-            var store = Load(id);
-            var dict = _extra.GetOrAdd(id, _ => new ConcurrentDictionary<string, PlayerStats>());
+            ConcurrentDictionary<string, PlayerStats> store = Load(id);
+            ConcurrentDictionary<string, PlayerStats> dict = _extra.GetOrAdd(id, _ => new ConcurrentDictionary<string, PlayerStats>());
             dict.Clear();
-            foreach (var kv in store) dict[kv.Key] = kv.Value;
+            foreach (KeyValuePair<string, PlayerStats> kv in store) dict[kv.Key] = kv.Value;
         }
 
         LogManager.Info("Stats reloaded from storage.");
@@ -237,9 +237,9 @@ internal sealed class StatsRepository : IStatsProvider
 
     private ConcurrentDictionary<string, PlayerStats> Load(string id)
     {
-        var data = Storage.Load(id);
-        var result = new ConcurrentDictionary<string, PlayerStats>(StringComparer.Ordinal);
-        foreach (var kv in data) result[kv.Key] = kv.Value;
+        IReadOnlyDictionary<string, PlayerStats> data = Storage.Load(id);
+        ConcurrentDictionary<string, PlayerStats> result = new(StringComparer.Ordinal);
+        foreach (KeyValuePair<string, PlayerStats> kv in data) result[kv.Key] = kv.Value;
         return result;
     }
 
@@ -251,33 +251,23 @@ internal sealed class StatsRepository : IStatsProvider
 
     internal async Task SaveAsync()
     {
-        var provider = Storage;
+        IStorageProvider provider = Storage;
         await provider.SaveAsync(_defaultId, _default);
-        foreach (var kv in _extra) await provider.SaveAsync(kv.Key, kv.Value);
+        foreach (KeyValuePair<string, ConcurrentDictionary<string, PlayerStats>> kv in _extra) await provider.SaveAsync(kv.Key, kv.Value);
     }
 
     internal IEnumerable<KeyValuePair<string, PlayerStats>> GetTopByCounter(string key, int top, string file = null)
     {
-        return GetStore(file)
-            .Where(kv => kv.Value?.Counters?.ContainsKey(key) == true)
-            .OrderByDescending(kv => kv.Value.GetCounter(key))
-            .Take(top);
+        return GetStore(file).Where(kv => kv.Value?.Counters?.ContainsKey(key) == true).OrderByDescending(kv => kv.Value.GetCounter(key)).Take(top);
     }
 
     internal IEnumerable<KeyValuePair<string, PlayerStats>> GetTopByDuration(string key, int top, string file = null)
     {
-        return GetStore(file)
-            .Where(kv => kv.Value?.Durations?.ContainsKey(key) == true)
-            .OrderByDescending(kv => kv.Value.GetDuration(key))
-            .Take(top);
+        return GetStore(file).Where(kv => kv.Value?.Durations?.ContainsKey(key) == true).OrderByDescending(kv => kv.Value.GetDuration(key)).Take(top);
     }
 
     internal IEnumerable<string> GetKnownKeys(string file = null)
     {
-        return GetStore(file).Values
-            .Where(s => s != null)
-            .SelectMany(s => s.GetAllKeys())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(k => k, StringComparer.OrdinalIgnoreCase);
+        return GetStore(file).Values.Where(s => s != null).SelectMany(s => s.GetAllKeys()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(k => k, StringComparer.OrdinalIgnoreCase);
     }
 }

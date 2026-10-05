@@ -8,7 +8,7 @@ internal sealed class TimeSpanConverter : JsonConverter<TimeSpan>
 {
     public override TimeSpan Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        if (reader.TokenType == JsonTokenType.String && TimeSpan.TryParse(reader.GetString(), out var result))
+        if (reader.TokenType == JsonTokenType.String && TimeSpan.TryParse(reader.GetString(), out TimeSpan result))
             return result;
         throw new JsonException($"Cannot convert '{reader.GetString()}' to TimeSpan.");
     }

@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CommandSystem;
 using LabApi.Features.Permissions;
 using LabApi.Features.Wrappers;
+using StatsSystem.API;
 
 namespace StatsSystem.Commands;
 
@@ -10,14 +12,16 @@ namespace StatsSystem.Commands;
 [CommandHandler(typeof(GameConsoleCommandHandler))]
 public sealed class AdminStatsCommand : ParentCommand
 {
+    public override string Command => "ss";
+
+    public override string[] Aliases { get; } = ["statsadmin"];
+
+    public override string Description => "StatsSystem admin commands. Run 'ss help' for subcommands.";
+
     public AdminStatsCommand()
     {
         LoadGeneratedCommands();
     }
-
-    public override string Command => "ss";
-    public override string[] Aliases { get; } = ["statsadmin"];
-    public override string Description => "StatsSystem admin commands. Run 'ss help' for subcommands.";
 
     public override void LoadGeneratedCommands()
     {
@@ -35,7 +39,7 @@ public sealed class AdminStatsCommand : ParentCommand
 
     internal static bool AdminCheck(ICommandSender sender, out string response)
     {
-        var player = Player.Get(sender);
+        Player player = Player.Get(sender);
         if (player == null)
         {
             response = null;
@@ -56,7 +60,9 @@ public sealed class AdminStatsCommand : ParentCommand
 internal sealed class SaveSubcommand : ICommand
 {
     public string Command => "save";
+
     public string[] Aliases => ["s"];
+
     public string Description => "Immediately saves all stats to disk.";
 
     public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
@@ -71,7 +77,9 @@ internal sealed class SaveSubcommand : ICommand
 internal sealed class ReloadSubcommand : ICommand
 {
     public string Command => "reload";
+
     public string[] Aliases => ["r"];
+
     public string Description => "Reloads stats from disk, discarding unsaved in-memory changes.";
 
     public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
@@ -86,8 +94,12 @@ internal sealed class ReloadSubcommand : ICommand
 internal sealed class ResetPlayerSubcommand : ICommand, IUsageProvider
 {
     public string Command => "resetplayer";
+
     public string[] Aliases => ["reset", "rp"];
+
     public string Description => "Deletes all stats for a player. Usage: ss resetplayer <userId>";
+
+    public string[] Usage => ["<userId>"];
 
     public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
     {
@@ -98,7 +110,7 @@ internal sealed class ResetPlayerSubcommand : ICommand, IUsageProvider
             return false;
         }
 
-        var userId = arguments.At(0);
+        string userId = arguments.At(0);
         if (!StatsSystemPlugin.Stats.DeletePlayerStats(userId))
         {
             response = $"No stats found for '{userId}'.";
@@ -108,36 +120,25 @@ internal sealed class ResetPlayerSubcommand : ICommand, IUsageProvider
         response = $"All stats deleted for '{userId}'.";
         return true;
     }
-
-    public string[] Usage => ["<userId>"];
 }
 
 internal sealed class InfoSubcommand : ICommand
 {
     public string Command => "info";
+
     public string[] Aliases => ["i"];
+
     public string Description => "Shows StatsSystem status information.";
 
     public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
     {
         if (!AdminStatsCommand.AdminCheck(sender, out response)) return false;
 
-        var snapshot = StatsSystemPlugin.Stats.GetAllStatsSnapshot();
-        var allKeys = snapshot.Values
-            .Where(s => s != null)
-            .SelectMany(s => s.GetAllKeys())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(k => k, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        IReadOnlyDictionary<string, PlayerStats> snapshot = StatsSystemPlugin.Stats.GetAllStatsSnapshot();
+        List<string> allKeys = snapshot.Values.Where(s => s != null).SelectMany(s => s.GetAllKeys()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(k => k, StringComparer.OrdinalIgnoreCase).ToList();
 
-        var keyLine = allKeys.Count > 0 ? $"  Keys: {string.Join(", ", allKeys)}" : "  Keys: (none yet)";
-        response = string.Join("\n",
-            $"=== StatsSystem v{StatsSystemPlugin.Singleton.Version} ===",
-            $"  Tracked players : {snapshot.Count}",
-            $"  Known stat keys  : {allKeys.Count}",
-            keyLine,
-            $"  Auto-save every : {StatsSystemPlugin.Singleton.Config.AutoSaveIntervalSeconds}s"
-        );
+        string keyLine = allKeys.Count > 0 ? $"  Keys: {string.Join(", ", allKeys)}" : "  Keys: (none yet)";
+        response = string.Join("\n", $"=== StatsSystem v{StatsSystemPlugin.Singleton.Version} ===", $"  Tracked players : {snapshot.Count}", $"  Known stat keys  : {allKeys.Count}", keyLine, $"  Auto-save every : {StatsSystemPlugin.Singleton.Config.AutoSaveIntervalSeconds}s");
         return true;
     }
 }

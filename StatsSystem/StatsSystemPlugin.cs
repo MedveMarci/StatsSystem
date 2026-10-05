@@ -25,10 +25,15 @@ internal sealed class StatsSystemPlugin : Plugin<Config>
     private string _statsDirectory;
 
     public override string Name => "StatsSystem";
+
     public override string Description => "Professional player-statistics tracking for SCP:SL servers.";
+
     public override string Author => "MedveMarci";
-    public override Version Version { get; } = new(2, 1, 1);
+
+    public override Version Version { get; } = new(2, 1, 2);
+
     public override Version RequiredApiVersion => new(LabApiProperties.CompiledVersion);
+
     public override bool IsTransparent => true;
 
     public static StatsSystemPlugin Singleton { get; private set; }
@@ -65,11 +70,11 @@ internal sealed class StatsSystemPlugin : Plugin<Config>
         AutoConvertIfNeeded();
 
         _activeProvider = CreateProvider();
-        var defaultId = "player_stats";
+        string defaultId = "player_stats";
 
         if (Config.StorageProvider == StorageProviderType.Json)
         {
-            var jsonPath = Path.Combine(_statsDirectory, "player_stats.json");
+            string jsonPath = Path.Combine(_statsDirectory, "player_stats.json");
             if (!File.Exists(jsonPath)) File.WriteAllText(jsonPath, "{}");
         }
 
@@ -77,7 +82,7 @@ internal sealed class StatsSystemPlugin : Plugin<Config>
 
         Stats = new StatsRepository(defaultId, _activeProvider);
 
-        var migrateResult = V1Migrator.Repair(Stats.GetAllStatsSnapshot());
+        string migrateResult = V1Migrator.Repair(Stats.GetAllStatsSnapshot());
         if (!migrateResult.StartsWith("Migration check complete"))
         {
             LogManager.Info("[V1Migrator] Auto-migration applied, saving...");
@@ -88,7 +93,7 @@ internal sealed class StatsSystemPlugin : Plugin<Config>
         Shutdown.OnQuit += EventHandler.OnQuit;
         CustomHandlersManager.RegisterEventsHandler(_eventHandler);
 
-        var interval = Math.Max(10, Config.AutoSaveIntervalSeconds);
+        int interval = Math.Max(10, Config.AutoSaveIntervalSeconds);
         _autoSaveHandle = Timing.RunCoroutine(AutoSaveCoroutine(interval));
 
         LogManager.Info($"StatsSystem v{Version} enabled. Auto-save every {interval}s.");
@@ -112,32 +117,32 @@ internal sealed class StatsSystemPlugin : Plugin<Config>
     private void AutoConvertIfNeeded()
     {
         if (Config.StorageProvider == StorageProviderType.Binary)
-            foreach (var jsonFile in Directory.GetFiles(_statsDirectory, "*.json"))
+            foreach (string jsonFile in Directory.GetFiles(_statsDirectory, "*.json"))
             {
-                var baseName = Path.GetFileNameWithoutExtension(jsonFile);
-                var binPath = Path.Combine(_statsDirectory, baseName + ".bin");
+                string baseName = Path.GetFileNameWithoutExtension(jsonFile);
+                string binPath = Path.Combine(_statsDirectory, baseName + ".bin");
                 if (File.Exists(binPath)) continue;
 
                 LogManager.Info($"Auto-converting '{baseName}.json' -> '{baseName}.bin'...");
-                var data = new JsonStorageProvider(_statsDirectory).Load(baseName);
+                IReadOnlyDictionary<string, PlayerStats> data = new JsonStorageProvider(_statsDirectory).Load(baseName);
                 new BinaryStorageProvider(_statsDirectory).Save(baseName, data);
                 File.Delete(jsonFile);
-                var bakPath = jsonFile + ".bak";
+                string bakPath = jsonFile + ".bak";
                 if (File.Exists(bakPath)) File.Delete(bakPath);
                 LogManager.Info($"Converted {data.Count} player records, removed old JSON file.");
             }
         else
-            foreach (var binFile in Directory.GetFiles(_statsDirectory, "*.bin"))
+            foreach (string binFile in Directory.GetFiles(_statsDirectory, "*.bin"))
             {
-                var baseName = Path.GetFileNameWithoutExtension(binFile);
-                var jsonPath = Path.Combine(_statsDirectory, baseName + ".json");
+                string baseName = Path.GetFileNameWithoutExtension(binFile);
+                string jsonPath = Path.Combine(_statsDirectory, baseName + ".json");
                 if (File.Exists(jsonPath)) continue;
 
                 LogManager.Info($"Auto-converting '{baseName}.bin' -> '{baseName}.json'...");
-                var data = new BinaryStorageProvider(_statsDirectory).Load(baseName);
+                IReadOnlyDictionary<string, PlayerStats> data = new BinaryStorageProvider(_statsDirectory).Load(baseName);
                 new JsonStorageProvider(_statsDirectory).Save(baseName, data);
                 File.Delete(binFile);
-                var bakPath = binFile + ".bak";
+                string bakPath = binFile + ".bak";
                 if (File.Exists(bakPath)) File.Delete(bakPath);
                 LogManager.Info($"Converted {data.Count} player records, removed old Binary file.");
             }
